@@ -44,3 +44,21 @@ git fetch upstream
 git merge upstream/main
 
 ```
+
+## 🌳 Recommended Workflow: Git Worktrees
+
+If you frequently find yourself switching between branches, stashing half-finished work, or needing to test the `main` branch while in the middle of a complex feature, we highly recommend using **Git Worktrees**. 
+
+A Git worktree allows you to check out multiple branches of this repository into entirely separate directories on your local machine. This means you can:
+- **Multitask effortlessly:** Keep your local dev server running on one branch while you quickly review a PR or fix a bug in another folder.
+- **Avoid context switching:** Stop relying on `git stash` and avoid the risk of losing uncommitted work when pulling updates.
+- **Compare side-by-side:** Open two different branches in separate editor windows to easily compare code or run them concurrently.
+
+**Using Worktrees in VS Code:**
+Visual Studio Code has excellent built-in support for worktrees. You can create and manage them directly from the UI:
+1. Go to the **Source Control** view.
+2. Expand the **Source Control Repositories** section.
+3. Click the **More Actions (...)** menu > **Worktrees** > **Create Worktree**.
+
+For a full guide on how to create, open, and manage worktrees, check out the official documentation:
+👉 [Working with Git Worktrees in VS Code](https://code.visualstudio.com/docs/sourcecontrol/branches-worktrees#_working-with-git-worktrees)
