@@ -1,0 +1,18 @@
+id: filter_and_save_question
+name: Filter and save a question
+instruction: >
+  Open the Sales dashboard, filter the region to Canada, and save the result
+  as a new question named "Sales - Canada".
+start_url: http://localhost:3000
+max_steps: 25
+timeout_seconds: 600
+success_criteria:
+  - saved_question_exists
+  - title_contains: Canada
+tags:
+  - beginner
+  - dashboard
+  - filter
+notes: >
+  This is the MVP demo task. Requires a Sales dashboard with a region filter
+  to exist in Metabase.

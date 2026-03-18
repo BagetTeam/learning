@@ -205,3 +205,15 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Metabase Agent specific
+runs/
+artifacts/
+*.png
+*.pdf
+*.csv
+
+# Docker volumes (if mounted locally)
+metabase_data/
+postgres_data/
+sample_data/

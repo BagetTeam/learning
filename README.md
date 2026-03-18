@@ -1,46 +1,104 @@
-# WebArena-Pro
+# Metabase Browser Agent
 
-Welcome to WebArena-Pro's project repository!
+A Python-based browser agent that automates tasks inside a local Metabase instance using Playwright for browser control and AgentLab's `GenericAgent` for decision-making.
 
-## Contributing to WebArena Pro
+## Features
 
-Since all contributors currently have **read-only access** to the main repository, all code contributions must follow the standard **Fork and Pull Request** workflow.
+- Autonomous browser operation against a local Metabase instance
+- Playwright-based browser automation (headless by default)
+- AgentLab GenericAgent integration for action decisions
+- Structured task definitions in YAML format
+- Comprehensive artifact logging (screenshots, traces, summaries)
 
-Follow these essential steps to set up your environment and submit your code:
+## Quick Start
 
-**1. Fork & Clone** Fork the main repository to your personal GitHub account using the GitHub UI, then clone your personal fork to your local machine:
+### Prerequisites
+
+- Python 3.11+
+- Docker and Docker Compose
+- Model API credentials (OpenAI, etc.)
+
+### Installation
+
+1. Clone the repository and install dependencies:
 
 ```bash
 git clone https://github.com/YOUR-USERNAME/webarena-pro.git
 cd webarena-pro
-
+pip install -e .
+playwright install chromium
 ```
 
-**2. Add Upstream** Link the main McGill-NLP repository so you can easily pull future updates and keep your local environment synced:
+2. Copy the environment file and configure your settings:
 
 ```bash
-git remote add upstream https://github.com/McGill-NLP/webarena-pro.git
-
+cp .env.example .env
+# Edit .env with your credentials
 ```
 
-**3. Create a Branch** Never commit directly to your `main` branch. Always create a new feature branch for your environment or bug fix:
+3. Start the local Metabase environment:
 
 ```bash
-git checkout -b feature/your-feature-name
-
+docker-compose up -d
 ```
 
-**4. Push & Submit PR** Commit your changes locally, push them to your fork, and then open a Pull Request on the main McGill-NLP repository for the Integration team to review:
+4. Wait for Metabase to initialize (first run takes a few minutes), then set up a test user at http://localhost:3000.
+
+### Running a Task
+
+Run a sample task:
 
 ```bash
-git push origin feature/your-feature-name
-
+metabase-agent run --task filter_and_save_question
 ```
 
-**5. Stay Synced** Regularly fetch and merge changes from the main repository's `main` branch before starting any new work to avoid merge conflicts:
+Run in demo mode (headed browser for debugging):
 
 ```bash
-git fetch upstream
-git merge upstream/main
+metabase-agent run --task filter_and_save_question --demo
+```
+
+### Project Structure
 
 ```
+metabase-agent/
+  pyproject.toml          # Package configuration
+  docker-compose.yml      # Local Metabase environment
+  .env.example            # Environment variables template
+  src/
+    metabase_agent/
+      cli.py              # Command-line interface
+      config.py           # Configuration loading
+      runner.py           # Main task orchestration
+      agent/              # AgentLab adapter
+      env/                # Browser environment
+      tasks/              # Task definitions
+      evaluation/         # Success criteria checking
+      metabase/           # Metabase helpers
+      logging/            # Artifact management
+```
+
+## Development
+
+Install dev dependencies:
+
+```bash
+pip install -e ".[dev]"
+```
+
+Run tests:
+
+```bash
+pytest
+```
+
+## Contributing
+
+Since all contributors currently have **read-only access** to the main repository, all code contributions must follow the standard **Fork and Pull Request** workflow.
+
+1. Fork the repository to your GitHub account
+2. Clone your fork: `git clone https://github.com/YOUR-USERNAME/webarena-pro.git`
+3. Add upstream: `git remote add upstream https://github.com/McGill-NLP/webarena-pro.git`
+4. Create a branch: `git checkout -b feature/your-feature-name`
+5. Push and submit PR: `git push origin feature/your-feature-name`
+6. Stay synced: `git fetch upstream && git merge upstream/main`
