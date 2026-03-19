@@ -1,0 +1,22 @@
+id: setup_alert
+name: Set up a question alert
+instruction: >
+  Open the "Total Revenue" question and set up an alert that:
+  1. Triggers when the value goes above $100,000
+  2. Sends a notification to agent@example.com
+  3. Checks daily
+  Save the alert when complete.
+start_url: http://localhost:3000
+max_steps: 35
+timeout_seconds: 600
+success_criteria:
+  - alert_exists
+  - url_contains: question
+tags:
+  - intermediate
+  - question
+  - alert
+notes: >
+  Tests question alert setup for threshold-based notifications.
+  Requires a numeric question (scalar) to exist.
+  Note: Alerts may require Pro/Enterprise for complex conditions.

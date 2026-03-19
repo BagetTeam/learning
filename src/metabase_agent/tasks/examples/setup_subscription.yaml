@@ -1,0 +1,22 @@
+id: setup_subscription
+name: Set up a dashboard subscription
+instruction: >
+  Open the Sales dashboard and set up a subscription that:
+  1. Sends the dashboard as a PDF attachment
+  2. Delivers to agent@example.com
+  3. Runs every Monday at 9:00 AM
+  Save the subscription when complete.
+start_url: http://localhost:3000
+max_steps: 35
+timeout_seconds: 600
+success_criteria:
+  - subscription_exists
+  - url_contains: dashboard
+tags:
+  - intermediate
+  - dashboard
+  - subscription
+notes: >
+  Tests dashboard subscription setup.
+  Requires email configuration in Metabase and an existing dashboard.
+  Note: Email delivery may not actually work in local dev environment.

@@ -1,0 +1,21 @@
+id: write_sql_query
+name: Write a SQL query
+instruction: >
+  Create a new SQL query that finds the top 10 customers by total order value.
+  The query should join the Orders and People tables, group by customer,
+  and order by total value descending. Save the question as "Top 10 Customers".
+start_url: http://localhost:3000
+max_steps: 35
+timeout_seconds: 900
+success_criteria:
+  - saved_question_exists
+  - question_name_contains: Top 10 Customers
+  - sql_query_executed
+  - query_result_has_rows
+tags:
+  - intermediate
+  - question
+  - sql
+notes: >
+  Tests SQL query writing with joins and aggregation.
+  Requires Sample Database with Orders and People tables.

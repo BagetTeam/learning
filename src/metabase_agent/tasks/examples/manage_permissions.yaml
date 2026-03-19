@@ -1,0 +1,22 @@
+id: manage_permissions
+name: Manage collection permissions
+instruction: >
+  Navigate to the "Marketing" collection and update its permissions:
+  1. Give the "Analysts" group view access to the collection
+  2. Give the "Marketing Team" group edit access
+  3. Ensure the "Guest" group has no access
+  Save the permission changes.
+start_url: http://localhost:3000
+max_steps: 40
+timeout_seconds: 600
+success_criteria:
+  - collection_permission_set
+  - url_contains: permissions
+tags:
+  - advanced
+  - permissions
+  - admin
+notes: >
+  Tests permission management for collections.
+  Requires admin access and existing groups/collections.
+  This is an advanced task that modifies access controls.

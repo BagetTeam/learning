@@ -1,0 +1,18 @@
+id: create_simple_question
+name: Create a simple question
+instruction: >
+  Create a new question that shows the total number of orders by product category.
+  Use the Sample Database and save the question as "Orders by Category".
+start_url: http://localhost:3000
+max_steps: 30
+timeout_seconds: 600
+success_criteria:
+  - saved_question_exists
+  - question_name_contains: Orders by Category
+tags:
+  - beginner
+  - question
+  - create
+notes: >
+  Tests basic question creation using the GUI query builder.
+  Requires Sample Database to be available in Metabase.

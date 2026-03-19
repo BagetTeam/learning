@@ -1,0 +1,18 @@
+id: export_data_csv
+name: Filter and export data to CSV
+instruction: >
+  Open the Orders question, apply a filter to show only orders from the year 2023,
+  and export the filtered results as a CSV file.
+start_url: http://localhost:3000
+max_steps: 25
+timeout_seconds: 300
+success_criteria:
+  - file_downloaded
+  - file_extension: csv
+tags:
+  - beginner
+  - export
+  - filter
+notes: >
+  Tests filtering and exporting data in CSV format.
+  Requires an Orders question to exist in Metabase.

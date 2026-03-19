@@ -1,0 +1,23 @@
+id: modify_dashboard
+name: Modify existing dashboard
+instruction: >
+  Open the Sales dashboard and perform the following modifications:
+  1. Bookmark the dashboard for quick access
+  2. Change the dashboard title to "Sales Dashboard - Updated"
+  3. Rearrange the cards so the largest chart is at the top
+  Save all changes when complete.
+start_url: http://localhost:3000
+max_steps: 30
+timeout_seconds: 600
+success_criteria:
+  - dashboard_bookmarked
+  - dashboard_updated
+  - dashboard_name_contains: Updated
+tags:
+  - beginner
+  - dashboard
+  - modify
+  - bookmark
+notes: >
+  Tests dashboard modification operations including bookmarking.
+  Requires an existing Sales dashboard in Metabase.

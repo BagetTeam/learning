@@ -1,0 +1,23 @@
+id: data_cleanup
+name: Clean up unused items
+instruction: >
+  Navigate to the collection browser and identify any unused or outdated
+  questions and dashboards. Delete or archive items that:
+  1. Have not been viewed in the last 30 days
+  2. Are marked as drafts or incomplete
+  3. Have duplicate names
+  Move at least 2 items to trash.
+start_url: http://localhost:3000
+max_steps: 40
+timeout_seconds: 600
+success_criteria:
+  - data_cleanup_complete
+  - item_deleted: question
+tags:
+  - intermediate
+  - cleanup
+  - maintenance
+notes: >
+  Tests the agent's ability to identify and clean up unused content.
+  Requires some questions/dashboards to exist that can be safely deleted.
+  Use with caution - creates permanent changes.
