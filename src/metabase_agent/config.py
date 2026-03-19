@@ -17,13 +17,20 @@ class MetabaseConfig(BaseSettings):
 
 
 class ModelConfig(BaseSettings):
-    """LLM model settings for the agent."""
+    """LLM model settings for the agent.
+
+    Supports multiple providers via LiteLLM naming convention:
+    - OpenAI: "gpt-4", "gpt-4o", "gpt-4o-mini"
+    - Gemini: "gemini/gemini-2.0-flash", "gemini/gemini-1.5-pro"
+    - Azure: "azure/deployment-name"
+    - OpenRouter: "openrouter/model-name"
+    """
 
     model_config = SettingsConfigDict(env_prefix="MODEL_")
 
-    name: str = "gpt-4"
+    name: str = "gemini/gemini-2.0-flash"
     api_key: str = ""
-    base_url: str = "https://api.openai.com/v1"
+    base_url: str = ""
 
 
 class AppConfig(BaseSettings):

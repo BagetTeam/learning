@@ -3,9 +3,19 @@
 This module wraps AgentLab's GenericAgent to keep the rest of the codebase
 independent from AgentLab internals. When AgentLab is integrated, this adapter
 will translate between our Observation/AgentAction types and AgentLab's formats.
+
+AgentLab uses LiteLLM under the hood, which supports multiple providers:
+- OpenAI: "gpt-4", "gpt-4o", "gpt-4o-mini"
+- Gemini: "gemini/gemini-2.0-flash", "gemini/gemini-1.5-pro"
+- Azure: "azure/deployment-name"
+- OpenRouter: "openrouter/model-name"
+
+For Gemini, set GEMINI_API_KEY in your environment.
+For OpenAI, set OPENAI_API_KEY in your environment.
 """
 
 import logging
+import os
 from typing import TYPE_CHECKING
 
 from metabase_agent.agent.models import AgentAction, Observation
@@ -20,18 +30,32 @@ class AgentController:
     This provides a clean interface for the TaskRunner while isolating
     AgentLab-specific code. Currently implements a stub that returns
     placeholder actions - replace with actual AgentLab integration.
+
+    Supports Gemini models via LiteLLM. Set GEMINI_API_KEY env var and use
+    model names like "gemini/gemini-2.0-flash".
     """
 
     def __init__(
         self,
-        model_name: str = "gpt-4",
+        model_name: str = "gemini/gemini-2.0-flash",
         api_key: str = "",
-        base_url: str = "https://api.openai.com/v1",
+        base_url: str = "",
     ) -> None:
         self.model_name = model_name
-        self.api_key = api_key
+        self.api_key = api_key or self._get_api_key_for_model(model_name)
         self.base_url = base_url
         self.logger = logging.getLogger(__name__)
+
+    def _get_api_key_for_model(self, model_name: str) -> str:
+        """Get the appropriate API key based on model name."""
+        if model_name.startswith("gemini/"):
+            return os.environ.get("GEMINI_API_KEY", "")
+        elif model_name.startswith("azure/"):
+            return os.environ.get("AZURE_OPENAI_API_KEY", "")
+        elif model_name.startswith("openrouter/"):
+            return os.environ.get("OPENROUTER_API_KEY", "")
+        else:
+            return os.environ.get("OPENAI_API_KEY", "")
 
         self._task: "TaskSpec | None" = None
         self._history: list[tuple[Observation, AgentAction]] = []
@@ -78,19 +102,25 @@ class AgentController:
         3. Parse the response into our AgentAction format
         4. Handle any errors or invalid responses
 
-        Example integration pattern:
-        ```
-        from agentlab.agents import GenericAgent
+        Example integration pattern for Gemini:
+        ```python
+        import os
+        os.environ["GEMINI_API_KEY"] = "your-key"
 
-        agent = GenericAgent(
-            model_name=self.model_name,
-            api_key=self.api_key,
-        )
+        from agentlab.agents.generic_agent import GenericAgentArgs
+        from agentlab.llm.llm_configs import CHAT_MODEL_ARGS_DICT
 
-        agentlab_obs = convert_to_agentlab_observation(observation, self._task)
-        agentlab_action = agent.get_action(agentlab_obs)
-        return convert_from_agentlab_action(agentlab_action)
+        # Configure for Gemini
+        model_args = CHAT_MODEL_ARGS_DICT.get("gemini-2.0-flash", {})
+        agent_args = GenericAgentArgs(chat_model_args=model_args)
+        agent = agent_args.make_agent()
+
+        # Use agent in BrowserGym environment
+        action = agent.get_action(bgym_obs)
         ```
+
+        See AgentLab docs for full BrowserGym integration:
+        https://github.com/ServiceNow/AgentLab
         """
         self.logger.warning(
             "Using stub agent - replace with AgentLab GenericAgent integration"
