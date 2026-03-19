@@ -9,7 +9,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class MetabaseConfig(BaseSettings):
     """Metabase connection settings."""
 
-    model_config = SettingsConfigDict(env_prefix="METABASE_")
+    model_config = SettingsConfigDict(
+        env_prefix="METABASE_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     url: str = "http://localhost:3000"
     username: str = "agent@example.com"
@@ -26,7 +31,12 @@ class ModelConfig(BaseSettings):
     - OpenRouter: "openrouter/model-name"
     """
 
-    model_config = SettingsConfigDict(env_prefix="MODEL_")
+    model_config = SettingsConfigDict(
+        env_prefix="MODEL_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     name: str = "gemini/gemini-2.0-flash"
     api_key: str = ""

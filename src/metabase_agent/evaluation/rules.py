@@ -41,10 +41,11 @@ class RuleBasedEvaluator:
         failed_criteria: list[str] = []
 
         for criterion in task.success_criteria:
+            criterion_str = str(criterion) if isinstance(criterion, dict) else criterion
             if self._check_criterion(criterion, final_observation, traces):
-                passed_criteria.append(criterion)
+                passed_criteria.append(criterion_str)
             else:
-                failed_criteria.append(criterion)
+                failed_criteria.append(criterion_str)
 
         if failed_criteria:
             return EvaluationResult.failed(
@@ -59,12 +60,23 @@ class RuleBasedEvaluator:
 
     def _check_criterion(
         self,
-        criterion: str,
+        criterion: str | dict,
         observation: "Observation",
         traces: list["StepTrace"],
     ) -> bool:
-        """Check a single criterion."""
-        if ":" in criterion:
+        """Check a single criterion.
+        
+        Criterion can be:
+        - A string like "saved_question_exists" or "title_contains: Canada"
+        - A dict like {"title_contains": "Canada"} (from YAML parsing)
+        """
+        if isinstance(criterion, dict):
+            if len(criterion) != 1:
+                self.logger.warning(f"Invalid dict criterion format: {criterion}")
+                return False
+            key = list(criterion.keys())[0]
+            value = str(criterion[key])
+        elif ":" in criterion:
             key, value = criterion.split(":", 1)
             key = key.strip()
             value = value.strip()

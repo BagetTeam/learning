@@ -233,7 +233,11 @@ class AgentController:
         if not raw_action or raw_action.lower() in ["none", "noop", "done"]:
             return AgentAction.done(reasoning=reasoning)
 
-        click_match = re.match(r'click\s*\(\s*["\']?([^"\']+)["\']?\s*\)', raw_action, re.IGNORECASE)
+        click_match = re.match(r'click\s*\(\s*"([^"]+)"\s*\)', raw_action, re.IGNORECASE)
+        if not click_match:
+            click_match = re.match(r"click\s*\(\s*'([^']+)'\s*\)", raw_action, re.IGNORECASE)
+        if not click_match:
+            click_match = re.match(r'click\s*\(\s*([^\s\)]+)\s*\)', raw_action, re.IGNORECASE)
         if click_match:
             return AgentAction.click(click_match.group(1), reasoning=reasoning)
 
