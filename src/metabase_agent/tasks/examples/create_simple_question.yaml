@@ -1,8 +1,10 @@
 id: create_simple_question
 name: Create a simple question
 instruction: >
-  Create a new question that shows the total number of orders by product category.
-  Use the Sample Database and save the question as "Orders by Category".
+  Create a new question that shows the total number of orders grouped by product
+  category. Use the Sample Data database, join the order_items table with
+  products, count the orders, and group by products.category.
+  Save the question as "Orders by Category".
 start_url: http://localhost:3000
 max_steps: 30
 timeout_seconds: 600
@@ -15,4 +17,5 @@ tags:
   - create
 notes: >
   Tests basic question creation using the GUI query builder.
-  Requires Sample Database to be available in Metabase.
+  Tables: order_items (has product_id), products (has category).
+  Categories include: Accessories, Electronics, Bags, Apparel, Footwear, Home, etc.

@@ -1,8 +1,9 @@
 id: export_data_csv
 name: Filter and export data to CSV
 instruction: >
-  Open the Orders question, apply a filter to show only orders from the year 2023,
-  and export the filtered results as a CSV file.
+  Open the order_summary view or create a question from it, apply a filter to
+  show only orders with status "completed", and export the filtered results
+  as a CSV file.
 start_url: http://localhost:3000
 max_steps: 25
 timeout_seconds: 300
@@ -15,4 +16,5 @@ tags:
   - filter
 notes: >
   Tests filtering and exporting data in CSV format.
-  Requires an Orders question to exist in Metabase.
+  Uses order_summary view which has status column.
+  Valid statuses: pending, paid, shipped, completed, returned.

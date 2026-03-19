@@ -2,8 +2,13 @@ id: write_sql_query
 name: Write a SQL query
 instruction: >
   Create a new SQL query that finds the top 10 customers by total order value.
-  The query should join the Orders and People tables, group by customer,
-  and order by total value descending. Save the question as "Top 10 Customers".
+  Use this query structure:
+  - Join orders with people (orders.user_id = people.id)
+  - Join orders with order_items (order_items.order_id = orders.id)
+  - Group by people.name
+  - Sum order_items.subtotal as total_spent
+  - Order by total_spent DESC, limit 10
+  Save the question as "Top 10 Customers".
 start_url: http://localhost:3000
 max_steps: 35
 timeout_seconds: 900
@@ -18,4 +23,4 @@ tags:
   - sql
 notes: >
   Tests SQL query writing with joins and aggregation.
-  Requires Sample Database with Orders and People tables.
+  Tables: people (id, name), orders (id, user_id), order_items (order_id, subtotal).
