@@ -4,12 +4,22 @@ import logging
 import re
 from typing import TYPE_CHECKING
 
+import requests
+
+from metabase_agent.config import MetabaseConfig
 from metabase_agent.evaluation.base import EvaluationResult
 
 if TYPE_CHECKING:
     from metabase_agent.agent.models import Observation
     from metabase_agent.logging.traces import StepTrace
     from metabase_agent.tasks.models import TaskSpec
+
+# Load Metabase config
+_mb_config = MetabaseConfig()
+METABASE_URL = _mb_config.url
+METABASE_USER = _mb_config.username
+METABASE_PASS = _mb_config.password
+
 
 def _get_metabase_token() -> str | None:
     """Authenticate with Metabase and return a session token."""
@@ -71,6 +81,21 @@ class RuleBasedEvaluator:
       - visualization_type: <type>          # bar, pie, line, table, map…
       - has_variable_filter                 # SQL query uses {{variable}} syntax
       - page_contains_chart                 # a chart element is visible
+ 
+    SQL queries:
+      - sql_query_executed                  # SQL query ran without errors
+      - query_result_has_rows               # query returned at least one row
+ 
+    Dashboard modifications:
+      - dashboard_bookmarked                # dashboard is in bookmarks
+      - item_deleted: <type>                # question or dashboard was deleted
+      - dashboard_updated                   # dashboard was modified (heuristic)
+ 
+    Data cleanup:
+      - data_cleanup_complete               # cleanup task markers present
+ 
+    Instructions/summarization:
+      - response_contains: <substring>      # agent's response contains text
     """
 
     def __init__(self) -> None:
@@ -191,7 +216,32 @@ class RuleBasedEvaluator:
  
         elif key == "page_contains_chart":
             return self._check_page_contains_chart(observation)
- 
+
+        # ---- SQL queries ----
+        elif key == "sql_query_executed":
+            return self._check_sql_query_executed(observation, traces)
+
+        elif key == "query_result_has_rows":
+            return self._check_query_result_has_rows(observation)
+
+        # ---- Dashboard modifications ----
+        elif key == "dashboard_bookmarked":
+            return self._check_dashboard_bookmarked(observation)
+
+        elif key == "item_deleted":
+            return self._check_item_deleted(value, traces)
+
+        elif key == "dashboard_updated":
+            return self._check_dashboard_updated(observation, traces)
+
+        # ---- Data cleanup ----
+        elif key == "data_cleanup_complete":
+            return self._check_data_cleanup_complete(observation, traces)
+
+        # ---- Instructions/summarization ----
+        elif key == "response_contains":
+            return self._check_response_contains(value, traces)
+
         else:
             self.logger.warning(f"Unknown criterion: {key}")
             return False
@@ -399,3 +449,169 @@ class RuleBasedEvaluator:
         ]
         html = getattr(observation, "html_content", "").lower()
         return any(ind in html for ind in chart_indicators)
+
+    # ------------------------------------------------------------------
+    # SQL query checks
+    # ------------------------------------------------------------------
+
+    def _check_sql_query_executed(
+        self, observation: "Observation", traces: list["StepTrace"]
+    ) -> bool:
+        """
+        Check that a SQL query was executed successfully.
+        Looks for query results or the native query editor state.
+        """
+        success_indicators = [
+            "rows",
+            "result",
+            "showing",
+            "row",
+        ]
+        error_indicators = [
+            "error",
+            "syntax error",
+            "failed",
+            "invalid",
+        ]
+        text = observation.text_content.lower()
+        has_success = any(ind in text for ind in success_indicators)
+        has_error = any(ind in text for ind in error_indicators)
+
+        if has_error and not has_success:
+            return False
+
+        on_question_page = "/question" in observation.url
+        return has_success or on_question_page
+
+    def _check_query_result_has_rows(self, observation: "Observation") -> bool:
+        """Check that the query result contains at least one row."""
+        text = observation.text_content.lower()
+        if "no results" in text or "0 rows" in text:
+            return False
+        row_indicators = [
+            r"\d+ rows?",
+            "showing",
+            "result",
+        ]
+        return any(re.search(ind, text) for ind in row_indicators)
+
+    # ------------------------------------------------------------------
+    # Dashboard modification checks
+    # ------------------------------------------------------------------
+
+    def _check_dashboard_bookmarked(self, observation: "Observation") -> bool:
+        """
+        Check if the current dashboard is bookmarked.
+        Uses API to verify bookmark status.
+        """
+        match = re.search(r"/dashboard/(\d+)", observation.url)
+        if not match:
+            return False
+        dash_id = match.group(1)
+
+        data = _metabase_get(f"/api/dashboard/{dash_id}")
+        if data:
+            return data.get("is_bookmarked", False) or data.get("bookmark", False)
+
+        bookmark_indicators = ["bookmarked", "remove from bookmarks", "unbookmark"]
+        text = observation.text_content.lower()
+        return any(ind in text for ind in bookmark_indicators)
+
+    def _check_item_deleted(self, item_type: str, traces: list["StepTrace"]) -> bool:
+        """
+        Check if an item (question or dashboard) was deleted.
+        Looks for deletion confirmation in traces or observation.
+        """
+        item_type = item_type.lower() if item_type else "item"
+        delete_indicators = [
+            "deleted",
+            "moved to trash",
+            "removed",
+            f"{item_type} deleted",
+        ]
+
+        for trace in traces:
+            action_str = str(getattr(trace, "action", "")).lower()
+            if "delete" in action_str:
+                return True
+            for event in getattr(trace, "network_events", []):
+                method = getattr(event, "method", "")
+                if method.upper() == "DELETE":
+                    return True
+
+        return False
+
+    def _check_dashboard_updated(
+        self, observation: "Observation", traces: list["StepTrace"]
+    ) -> bool:
+        """
+        Check if a dashboard was modified (cards added/removed, layout changed).
+        Heuristic based on PUT/POST requests to dashboard API.
+        """
+        update_patterns = [
+            r"PUT.*/api/dashboard/\d+",
+            r"POST.*/api/dashboard/\d+/cards",
+        ]
+
+        for trace in traces:
+            for event in getattr(trace, "network_events", []):
+                method = getattr(event, "method", "").upper()
+                url = getattr(event, "url", "")
+                for pattern in update_patterns:
+                    if re.search(pattern, f"{method} {url}"):
+                        return True
+
+        save_indicators = ["saved", "updated", "changes saved"]
+        text = observation.text_content.lower()
+        return any(ind in text for ind in save_indicators)
+
+    # ------------------------------------------------------------------
+    # Data cleanup checks
+    # ------------------------------------------------------------------
+
+    def _check_data_cleanup_complete(
+        self, observation: "Observation", traces: list["StepTrace"]
+    ) -> bool:
+        """
+        Check if a data cleanup task was completed.
+        Looks for deletion/archival actions or cleanup confirmation.
+        """
+        cleanup_indicators = [
+            "deleted",
+            "archived",
+            "cleaned",
+            "removed",
+            "moved to trash",
+        ]
+        text = observation.text_content.lower()
+        if any(ind in text for ind in cleanup_indicators):
+            return True
+
+        delete_count = 0
+        for trace in traces:
+            for event in getattr(trace, "network_events", []):
+                method = getattr(event, "method", "")
+                if method.upper() == "DELETE":
+                    delete_count += 1
+
+        return delete_count > 0
+
+    # ------------------------------------------------------------------
+    # Instructions/summarization checks
+    # ------------------------------------------------------------------
+
+    def _check_response_contains(
+        self, substring: str, traces: list["StepTrace"]
+    ) -> bool:
+        """
+        Check if the agent's response contains the specified text.
+        Used for summarization and instruction-providing tasks.
+        """
+        for trace in traces:
+            response = getattr(trace, "agent_response", "")
+            if substring.lower() in response.lower():
+                return True
+            thought = getattr(trace, "thought", "")
+            if substring.lower() in thought.lower():
+                return True
+        return False
