@@ -16,11 +16,17 @@ class Observation:
     text_content: str
     html_snapshot: str
     screenshot_path: str | None = None
+    screenshot_bytes: bytes | None = None
+    axtree: str = ""
     metadata: dict = field(default_factory=dict)
 
     def summary(self) -> str:
         """Return a brief summary of the observation."""
         return f"URL: {self.url}, Title: {self.title}, Content length: {len(self.text_content)}"
+
+    def has_screenshot(self) -> bool:
+        """Check if screenshot is available."""
+        return self.screenshot_bytes is not None or self.screenshot_path is not None
 
 
 ActionType = Literal["click", "type", "press", "navigate", "scroll", "select", "wait", "done"]

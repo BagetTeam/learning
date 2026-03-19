@@ -7,6 +7,8 @@ A Python-based browser agent that automates tasks inside a local Metabase instan
 - Autonomous browser operation against a local Metabase instance
 - Playwright-based browser automation (headless by default)
 - AgentLab GenericAgent integration for action decisions
+- Multi-provider LLM support via LiteLLM (Gemini, OpenAI, Azure, OpenRouter)
+- Vision-enabled agents with screenshot understanding
 - Structured task definitions in YAML format
 - Comprehensive artifact logging (screenshots, traces, summaries)
 
@@ -16,7 +18,7 @@ A Python-based browser agent that automates tasks inside a local Metabase instan
 
 - Python 3.11+
 - Docker and Docker Compose
-- Model API credentials (OpenAI, etc.)
+- LLM API key (Gemini, OpenAI, etc.)
 
 ### Installation
 
@@ -33,23 +35,48 @@ playwright install chromium
 
 ```bash
 cp .env.example .env
-# Edit .env with your credentials
 ```
 
-3. Start the local Metabase environment:
+3. Set your API key (choose one):
+
+```bash
+# For Gemini (recommended):
+export GEMINI_API_KEY=your-gemini-api-key
+
+# For OpenAI:
+export OPENAI_API_KEY=your-openai-api-key
+
+# For OpenRouter:
+export OPENROUTER_API_KEY=your-openrouter-api-key
+```
+
+4. Start the local Metabase environment:
 
 ```bash
 docker-compose up -d
 ```
 
-4. Wait for Metabase to initialize (first run takes a few minutes), then set up a test user at http://localhost:3000.
+5. Wait for Metabase to initialize (first run takes a few minutes), then set up a test user at http://localhost:3000.
+
+6. Verify your setup:
+
+```bash
+metabase-agent check
+```
 
 ### Running a Task
 
-Run a sample task:
+Run a sample task with Gemini (default):
 
 ```bash
 metabase-agent run --task filter_and_save_question
+```
+
+Run with a specific model:
+
+```bash
+metabase-agent run --task filter_and_save_question --model gemini/gemini-2.0-flash
+metabase-agent run --task filter_and_save_question --model gpt-4o
 ```
 
 Run in demo mode (headed browser for debugging):
@@ -57,6 +84,23 @@ Run in demo mode (headed browser for debugging):
 ```bash
 metabase-agent run --task filter_and_save_question --demo
 ```
+
+List available tasks:
+
+```bash
+metabase-agent list-tasks
+```
+
+### Supported Models
+
+The agent uses LiteLLM for multi-provider support:
+
+| Provider | Model Examples | API Key Variable |
+|----------|---------------|------------------|
+| Gemini | `gemini/gemini-2.0-flash`, `gemini/gemini-1.5-pro` | `GEMINI_API_KEY` |
+| OpenAI | `gpt-4o`, `gpt-4o-mini`, `gpt-4` | `OPENAI_API_KEY` |
+| Azure | `azure/your-deployment` | `AZURE_OPENAI_API_KEY` |
+| OpenRouter | `openrouter/anthropic/claude-3.5-sonnet` | `OPENROUTER_API_KEY` |
 
 ### Project Structure
 

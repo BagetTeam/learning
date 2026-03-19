@@ -79,13 +79,31 @@ class TaskRunner:
                 self.logger.info(f"Step {step}/{task.max_steps}")
 
                 action = agent.act(obs)
-                self.logger.debug(f"Agent action: {action}")
+                self.logger.info(f"Agent action: {action.action_type} - {action.reasoning[:100] if action.reasoning else ''}")
 
                 screenshot_path = artifact_logger.save_screenshot(
-                    env.get_screenshot(),
+                    obs.screenshot_bytes or env.get_screenshot(),
                     step,
                     prefix="before",
                 )
+
+                if action.action_type == "done":
+                    self.logger.info("Agent signaled task complete")
+                    done = True
+                    trace = StepTrace(
+                        step=step,
+                        action=action,
+                        observation_summary=obs.summary(),
+                        url=obs.url,
+                        screenshot_path=screenshot_path,
+                        reward=1.0,
+                        done=True,
+                        elapsed_ms=int((time.time() - step_start) * 1000),
+                        error=None,
+                    )
+                    traces.append(trace)
+                    artifact_logger.save_trace(trace)
+                    break
 
                 obs, reward, done, info = env.step(action)
 
