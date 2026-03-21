@@ -1,0 +1,22 @@
+id: find_cheapest_order
+name: Find the cheapest order item
+instruction: >
+  Find the cheapest order item by unit price.
+  1. Click "New" button, then click "Question"
+  2. Select "sample-db" database, then select "Order Items" table
+  3. Sort by "Unit Price" ascending (lowest first)
+  4. Click "Visualize" to see the results
+  The cheapest item should appear at the top.
+start_url: http://localhost:3000
+max_steps: 15
+timeout_seconds: 300
+success_criteria:
+  - url_contains: question
+  - page_shows_table_data
+tags:
+  - beginner
+  - question
+  - sort
+notes: >
+  Very simple task - just create a question with sorting, no saving required.
+  Tests basic navigation and sorting functionality.

@@ -1,21 +1,25 @@
 id: create_simple_question
 name: Create a simple question
 instruction: >
-  Create a new question that shows the total number of orders grouped by product
-  category. Use the Sample Data database, join the order_items table with
-  products, count the orders, and group by products.category.
-  Save the question as "Orders by Category".
+  Create a new question showing order items with Unit Price greater than 100.
+  1. Click "New" button, then click "Question"
+  2. You will see a database picker - click on "sample-db" to expand it
+  3. You will then see a list of tables - click on "Order Items" (do NOT click the back arrow)
+  4. Add a filter on "Unit Price" greater than 100
+  5. Click "Visualize" to see results
+  6. Save the question as "Orders over 100$"
 start_url: http://localhost:3000
 max_steps: 30
 timeout_seconds: 600
 success_criteria:
   - saved_question_exists
-  - question_name_contains: Orders by Category
+  - question_name_contains: Orders over 100$
 tags:
   - beginner
   - question
   - create
 notes: >
   Tests basic question creation using the GUI query builder.
-  Tables: order_items (has product_id), products (has category).
-  Categories include: Accessories, Electronics, Bags, Apparel, Footwear, Home, etc.
+  Uses the Order Items table from sample-db.
+  Agent should filter by Unit Price > 100 and count the results.
+  The question should be saved with the exact name "Orders over 100$".
