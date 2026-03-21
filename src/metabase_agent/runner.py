@@ -67,6 +67,8 @@ class TaskRunner:
         step = 0
         done = False
         error: str | None = None
+        last_action_str: str = ""
+        last_action_error: str = ""
 
         try:
             self.logger.info("Initializing browser environment")
@@ -78,8 +80,15 @@ class TaskRunner:
                 step_start = time.time()
                 self.logger.info(f"Step {step}/{task.max_steps}")
 
+                # Inject error feedback from previous step into observation
+                obs.last_action = last_action_str
+                obs.last_action_error = last_action_error
+
                 action = agent.act(obs)
-                self.logger.info(f"Agent action: {action.action_type} - {action.reasoning[:100] if action.reasoning else ''}")
+                action_desc = action.describe()
+                self.logger.info(f"Agent action: {action_desc}")
+                if action.reasoning:
+                    self.logger.debug(f"Reasoning: {action.reasoning[:200]}")
 
                 screenshot_path = artifact_logger.save_screenshot(
                     obs.screenshot_bytes or env.get_screenshot(),
@@ -106,6 +115,13 @@ class TaskRunner:
                     break
 
                 obs, reward, done, info = env.step(action)
+
+                # Store action and error for next iteration's feedback
+                last_action_str = action_desc
+                last_action_error = info.get("error", "")
+
+                if last_action_error:
+                    self.logger.warning(f"Action failed: {last_action_error[:200]}")
 
                 trace = StepTrace(
                     step=step,
