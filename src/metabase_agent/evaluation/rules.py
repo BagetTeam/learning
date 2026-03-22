@@ -605,13 +605,77 @@ class RuleBasedEvaluator:
     ) -> bool:
         """
         Check if the agent's response contains the specified text.
-        Used for summarization and instruction-providing tasks.
+        Used for tasks where the agent must report/answer something.
+        
+        Checks multiple sources for the answer:
+        1. done() action reasoning (primary)
+        2. done() action's answer field if present
+        3. Any explicit "answer:" or "result:" patterns in reasoning
+        4. Numeric answers with flexible matching (handles formatting)
         """
+        substring_lower = substring.lower().strip()
+        
+        # Try to find numeric value if substring is a number
+        is_numeric = False
+        numeric_value = None
+        try:
+            numeric_value = float(substring.replace(",", "").replace("$", ""))
+            is_numeric = True
+        except ValueError:
+            pass
+        
         for trace in traces:
-            response = getattr(trace, "agent_response", "")
-            if substring.lower() in response.lower():
+            if not trace.action or trace.action.action_type != "done":
+                continue
+                
+            reasoning = trace.action.reasoning or ""
+            reasoning_lower = reasoning.lower()
+            
+            # Direct substring match
+            if substring_lower in reasoning_lower:
                 return True
-            thought = getattr(trace, "thought", "")
-            if substring.lower() in thought.lower():
+            
+            # Check answer field if present (some agents use this)
+            answer_field = getattr(trace.action, "answer", None)
+            if answer_field and substring_lower in str(answer_field).lower():
                 return True
+            
+            # Look for explicit answer patterns like "Answer: X" or "The answer is X"
+            answer_patterns = [
+                r"answer[:\s]+(.+?)(?:\.|$|\n)",
+                r"result[:\s]+(.+?)(?:\.|$|\n)",
+                r"the (?:answer|result|total|count|number) is[:\s]*(.+?)(?:\.|$|\n)",
+                r"there (?:are|is)[:\s]*(\d+)",
+                r"found[:\s]*(\d+)",
+                r"shows[:\s]*(\d+)",
+            ]
+            
+            for pattern in answer_patterns:
+                match = re.search(pattern, reasoning_lower, re.IGNORECASE)
+                if match:
+                    extracted = match.group(1).strip()
+                    if substring_lower in extracted:
+                        return True
+                    # For numeric comparisons, try flexible matching
+                    if is_numeric:
+                        try:
+                            extracted_num = float(extracted.replace(",", "").replace("$", ""))
+                            if abs(extracted_num - numeric_value) < 0.01:
+                                return True
+                        except ValueError:
+                            pass
+            
+            # For numeric answers, also check if the number appears in the reasoning
+            if is_numeric:
+                # Match the number with optional formatting (commas, decimals)
+                num_str = str(int(numeric_value)) if numeric_value == int(numeric_value) else str(numeric_value)
+                # Check for the number with word boundaries
+                if re.search(rf"\b{re.escape(num_str)}\b", reasoning):
+                    return True
+                # Also check formatted versions (e.g., "1,234" for 1234)
+                if numeric_value >= 1000:
+                    formatted = f"{int(numeric_value):,}"
+                    if formatted in reasoning:
+                        return True
+                        
         return False
