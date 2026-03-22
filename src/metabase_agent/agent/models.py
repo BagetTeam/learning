@@ -35,7 +35,7 @@ class Observation:
         return bool(self.last_action_error)
 
 
-ActionType = Literal["click", "type", "press", "navigate", "scroll", "select", "wait", "done"]
+ActionType = Literal["click", "type", "press", "navigate", "scroll", "select", "wait", "done", "answer"]
 
 
 @dataclass
@@ -126,6 +126,11 @@ class AgentAction:
         """Signal that the task is complete."""
         return cls(action_type="done", reasoning=reasoning)
 
+    @classmethod
+    def answer(cls, value: str, reasoning: str = "") -> "AgentAction":
+        """Report an answer/value for the task."""
+        return cls(action_type="answer", value=value, reasoning=reasoning)
+
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""
         return {
@@ -164,4 +169,6 @@ class AgentAction:
             return f"wait({self.timeout})"
         elif self.action_type == "done":
             return "done()"
+        elif self.action_type == "answer":
+            return f"answer(\"{self.value}\")"
         return f"{self.action_type}(...)"
