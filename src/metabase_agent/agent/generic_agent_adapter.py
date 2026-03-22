@@ -613,7 +613,8 @@ Action:"""
 
     def _fallback_action(self) -> AgentAction:
         """Return a fallback action when parsing fails."""
-        if self._step_count >= 10:
+        max_steps = self._task.max_steps if self._task else 30
+        if self._step_count >= max_steps:
             return AgentAction.done(reasoning="Fallback: max steps reached")
         return AgentAction.wait(timeout=1000, reasoning="Fallback: could not determine action")
 
