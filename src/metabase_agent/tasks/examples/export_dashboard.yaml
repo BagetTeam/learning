@@ -5,6 +5,10 @@ instruction: >
 start_url: http://localhost:3000
 max_steps: 20
 timeout_seconds: 300
+requires:
+  - type: dashboard
+    name: Sales Overview
+    setup_task_id: create_dashboard
 success_criteria:
   - file_downloaded
   - file_extension: pdf

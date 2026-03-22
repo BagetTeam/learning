@@ -1,14 +1,16 @@
 id: modify_dashboard
 name: Modify existing dashboard
 instruction: >
-  Open the Sales Overview dashboard and perform the following modifications:
-  1. Bookmark the dashboard for quick access
-  2. Change the dashboard title to "Sales Overview - Updated"
-  3. Rearrange the cards so the largest chart is at the top
-  Save all changes when complete.
+  Open the Sales Overview dashboard, bookmark it for quick access, rename it
+  to "Sales Overview - Updated", and rearrange the cards so the largest chart
+  is at the top. Save all changes when complete.
 start_url: http://localhost:3000
 max_steps: 30
 timeout_seconds: 600
+requires:
+  - type: dashboard
+    name: Sales Overview
+    setup_task_id: create_dashboard
 success_criteria:
   - dashboard_bookmarked
   - dashboard_updated

@@ -11,7 +11,7 @@ max_steps: 10
 timeout_seconds: 300
 success_criteria:
   - url_contains: question
-  - page_shows_data
+  - query_result_has_rows
 tags:
   - beginner
   - question
