@@ -608,8 +608,8 @@ class RuleBasedEvaluator:
         Used for tasks where the agent must report/answer something.
         
         Checks multiple sources for the answer:
-        1. done() action reasoning (primary)
-        2. done() action's answer field if present
+        1. answer() action value (primary - the dedicated answer action)
+        2. done() action reasoning (legacy fallback)
         3. Any explicit "answer:" or "result:" patterns in reasoning
         4. Numeric answers with flexible matching (handles formatting)
         """
@@ -625,7 +625,34 @@ class RuleBasedEvaluator:
             pass
         
         for trace in traces:
-            if not trace.action or trace.action.action_type != "done":
+            if not trace.action:
+                continue
+            
+            # Check answer() action - the primary way to report answers
+            if trace.action.action_type == "answer":
+                answer_value = trace.action.value or ""
+                answer_lower = answer_value.lower()
+                
+                # Direct substring match
+                if substring_lower in answer_lower:
+                    return True
+                
+                # Numeric match
+                if is_numeric:
+                    try:
+                        answer_num = float(answer_value.replace(",", "").replace("$", ""))
+                        if abs(answer_num - numeric_value) < 0.01:
+                            return True
+                    except ValueError:
+                        pass
+                    # Also check if number appears in the answer
+                    num_str = str(int(numeric_value)) if numeric_value == int(numeric_value) else str(numeric_value)
+                    if re.search(rf"\b{re.escape(num_str)}\b", answer_value):
+                        return True
+                continue
+            
+            # Check done() action reasoning (legacy/fallback)
+            if trace.action.action_type != "done":
                 continue
                 
             reasoning = trace.action.reasoning or ""

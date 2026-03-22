@@ -1,0 +1,16 @@
+id: find_order_price
+name: Find the price of order with ID 1
+instruction: >
+  "Find the unit cost of the order with Order ID 1 in the Order Items table from the sample-db database. Report the unit cost value."
+start_url: http://localhost:3000/browse/databases
+max_steps: 30
+timeout_seconds: 300
+success_criteria:
+  - response_contains: unit cost
+tags:
+  - beginner
+  - browse
+  - view
+notes: >
+  Simple browse task - navigate to Order Items table and find the price for order ID 1.
+  Agent needs to locate the row with Order ID 1 and report its price.

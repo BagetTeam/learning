@@ -128,8 +128,11 @@ class TaskRunner:
                     prefix="before",
                 )
 
-                if action.action_type == "done":
-                    self.logger.info("Agent signaled task complete")
+                if action.action_type in ("done", "answer"):
+                    if action.action_type == "answer":
+                        self.logger.info(f"Agent reported answer: {action.value}")
+                    else:
+                        self.logger.info("Agent signaled task complete")
                     done = True
                     trace = StepTrace(
                         step=step,
@@ -219,11 +222,13 @@ class TaskRunner:
         else:
             summary = final_evaluation.reason if final_evaluation else "Task completed successfully"
 
-        # Extract agent's answer from the done() action reasoning
+        # Extract agent's answer from the answer() action value or done() reasoning
         agent_answer = None
         if traces:
             last_trace = traces[-1]
-            if last_trace.action.action_type == "done" and last_trace.action.reasoning:
+            if last_trace.action.action_type == "answer" and last_trace.action.value:
+                agent_answer = last_trace.action.value
+            elif last_trace.action.action_type == "done" and last_trace.action.reasoning:
                 agent_answer = last_trace.action.reasoning
 
         result = RunResult(

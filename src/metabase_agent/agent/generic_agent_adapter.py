@@ -383,6 +383,11 @@ class AgentController:
             timeout = int(wait_match.group(1))
             return AgentAction.wait(timeout=timeout, reasoning=reasoning)
 
+        # answer("value") action - report task result
+        answer_match = re.search(r'answer\s*\(\s*["\']([^"\']+)["\']?\s*\)', raw_action, re.IGNORECASE)
+        if answer_match:
+            return AgentAction.answer(answer_match.group(1), reasoning=reasoning)
+
         logger.warning(f"Could not parse action: {raw_action[:100]}")
         return AgentAction.wait(timeout=1000, reasoning=f"Unparsed: {raw_action[:200]}")
 
@@ -500,8 +505,12 @@ You must respond with exactly ONE action using element indices from the list abo
 6. goto("url")            - Navigate to a specific URL
                             Example: goto("http://localhost:3000/dashboard")
 
-7. done()                 - Signal that the task is COMPLETE
-                            Only use when the task objective has been achieved
+7. answer("value")        - Report the answer/result for the task
+                            Example: answer("Order ID: 12345")
+                            Use when the task asks you to find, identify, or report a value
+
+8. done()                 - Signal that the task is COMPLETE (no answer needed)
+                            Only use when the task objective has been achieved and no value needs to be reported
 
 ## IMPORTANT RULES
 - Use element INDICES (numbers) from the list above, NOT CSS selectors
