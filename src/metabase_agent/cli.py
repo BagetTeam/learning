@@ -55,12 +55,19 @@ def main() -> None:
     type=int,
     help="Maximum number of steps (overrides task config).",
 )
+@click.option(
+    "--skip-prerequisites",
+    is_flag=True,
+    default=False,
+    help="Skip prerequisite checks (useful for testing).",
+)
 def run(
     task: str,
     demo: bool,
     output: Path | None,
     model: str | None,
     max_steps: int | None,
+    skip_prerequisites: bool,
 ) -> None:
     """Run a browser automation task against Metabase."""
     config = AppConfig.load()
@@ -85,7 +92,7 @@ def run(
 
     logger.info(f"Running task: {task_spec.name}")
     logger.info(f"Using model: {config.model.name}")
-    runner = TaskRunner(config)
+    runner = TaskRunner(config, skip_prerequisites=skip_prerequisites)
 
     result = runner.run(task_spec)
 
@@ -94,11 +101,27 @@ def run(
         click.echo(f"Success: {result.summary}")
         click.echo(f"Steps taken: {result.total_steps}")
         click.echo(f"Time elapsed: {result.elapsed_seconds:.1f}s")
+        if result.agent_answer:
+            click.echo(f"\n--- Agent Answer ---")
+            click.echo(result.agent_answer)
+            click.echo(f"--------------------")
         click.echo(f"Artifacts saved to: {result.artifacts_dir}")
     else:
-        logger.error(f"Task failed: {result.error}")
-        click.echo(f"Failed: {result.error}", err=True)
+        logger.error(f"Task failed: {result.summary}")
+        click.echo(f"Failed: {result.summary}", err=True)
+        
+        # Show prerequisite-specific info
+        if not result.prerequisites_satisfied:
+            click.echo("\nMissing prerequisites:", err=True)
+            for prereq in result.missing_prerequisites:
+                click.echo(f"  - {prereq}", err=True)
+            click.echo("\nHint: Run the required setup task first, or use --skip-prerequisites to bypass.", err=True)
+        
         click.echo(f"Steps taken: {result.total_steps}")
+        if result.agent_answer:
+            click.echo(f"\n--- Agent Answer ---")
+            click.echo(result.agent_answer)
+            click.echo(f"--------------------")
         if result.artifacts_dir:
             click.echo(f"Artifacts saved to: {result.artifacts_dir}")
         raise SystemExit(1)
@@ -117,6 +140,53 @@ def list_tasks() -> None:
     click.echo("Available tasks:")
     for task_id in tasks:
         click.echo(f"  - {task_id}")
+
+
+@main.command()
+@click.option(
+    "--task",
+    "-t",
+    required=True,
+    help="Task ID or path to task YAML file.",
+)
+def check_prerequisites(task: str) -> None:
+    """Check if task prerequisites are satisfied."""
+    from metabase_agent.tasks.prerequisites import check_prerequisites as check_prereqs, PrerequisiteChecker
+    
+    config = AppConfig.load()
+    setup_logging(config.log_level)
+    
+    task_spec = load_task(task)
+    
+    if not task_spec.has_requirements():
+        click.echo(f"Task '{task_spec.name}' has no prerequisites.")
+        return
+    
+    click.echo(f"Checking prerequisites for: {task_spec.name}")
+    click.echo(f"Requirements: {len(task_spec.requires)}")
+    
+    result = check_prereqs(
+        task=task_spec,
+        metabase_url=config.metabase.url,
+        username=config.metabase.username,
+        password=config.metabase.password,
+    )
+    
+    click.echo("")
+    for key, satisfied in result.details.items():
+        status = "OK" if satisfied else "MISSING"
+        icon = "+" if satisfied else "-"
+        click.echo(f"  [{icon}] {key}: {status}")
+    
+    click.echo("")
+    if result.satisfied:
+        click.echo("All prerequisites satisfied. Task can run.")
+    else:
+        click.echo(f"Missing {len(result.missing)} prerequisite(s).", err=True)
+        for req in task_spec.requires:
+            if f"{req.type}:{req.name}" in result.missing and req.setup_task_id:
+                click.echo(f"\nHint: Run 'metabase-agent run -t {req.setup_task_id}' to create the missing {req.type}.", err=True)
+        raise SystemExit(1)
 
 
 @main.command()
