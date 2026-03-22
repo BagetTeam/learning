@@ -203,8 +203,15 @@ class AgentController:
             bgym_obs = self._convert_to_browsergym_obs(observation)
 
             agent_info = self._agent.get_action(bgym_obs)
-            raw_action = agent_info.get("action", "")
-            reasoning = agent_info.get("think", "")
+            
+            # Handle both dict and object with attributes
+            if isinstance(agent_info, dict):
+                raw_action = agent_info.get("action", "")
+                reasoning = agent_info.get("think", "")
+            else:
+                # AgentLab may return an object with .action and .think attributes
+                raw_action = getattr(agent_info, "action", "") or ""
+                reasoning = getattr(agent_info, "think", "") or getattr(agent_info, "thoughts", "") or ""
 
             return self._parse_browsergym_action(raw_action, reasoning)
 
@@ -282,27 +289,36 @@ class AgentController:
 
         Supports index-based actions (preferred):
           - click(5)        -> click element [5] from axtree
+          - click([5])      -> click element [5] (bracket notation)
           - type(3, "text") -> type into element [3]
           - select(7, "val") -> select value in element [7]
 
         Also supports legacy selector-based actions:
           - click("selector")
           - type("selector", "text")
+        
+        This function searches ANYWHERE in the text for valid actions,
+        allowing for reasoning/explanation before the action.
         """
         raw_action = raw_action.strip()
 
         if not raw_action or raw_action.lower() in ["none", "noop", "done"]:
             return AgentAction.done(reasoning=reasoning)
 
-        # Index-based click: click(5) or click(5)
-        index_click_match = re.match(r'click\s*\(\s*(\d+)\s*\)', raw_action, re.IGNORECASE)
+        # Check for done() action anywhere in text
+        if re.search(r'\bdone\s*\(\s*\)', raw_action, re.IGNORECASE):
+            return AgentAction.done(reasoning=reasoning)
+
+        # Index-based click: click(5) or click([5]) - search anywhere in text
+        # Support both click(5) and click([5]) formats
+        index_click_match = re.search(r'click\s*\(\s*\[?\s*(\d+)\s*\]?\s*\)', raw_action, re.IGNORECASE)
         if index_click_match:
             index = int(index_click_match.group(1))
             return AgentAction.click_index(index, reasoning=reasoning)
 
-        # Index-based type: type(5, "text") or fill(5, "text")
-        index_type_match = re.match(
-            r'(?:type|fill)\s*\(\s*(\d+)\s*,\s*["\']([^"\']*)["\']?\s*\)',
+        # Index-based type: type(5, "text") or fill(5, "text") or type([5], "text")
+        index_type_match = re.search(
+            r'(?:type|fill)\s*\(\s*\[?\s*(\d+)\s*\]?\s*,\s*["\']([^"\']*)["\']?\s*\)',
             raw_action,
             re.IGNORECASE,
         )
@@ -311,9 +327,9 @@ class AgentController:
             text = index_type_match.group(2)
             return AgentAction.type_index(index, text, reasoning=reasoning)
 
-        # Index-based select: select(7, "value")
-        index_select_match = re.match(
-            r'select\s*\(\s*(\d+)\s*,\s*["\']([^"\']*)["\']?\s*\)',
+        # Index-based select: select(7, "value") or select([7], "value")
+        index_select_match = re.search(
+            r'select\s*\(\s*\[?\s*(\d+)\s*\]?\s*,\s*["\']([^"\']*)["\']?\s*\)',
             raw_action,
             re.IGNORECASE,
         )
@@ -322,18 +338,35 @@ class AgentController:
             value = index_select_match.group(2)
             return AgentAction.select_index(index, value, reasoning=reasoning)
 
-        # Legacy selector-based click: click("selector")
-        click_match = re.match(r'click\s*\(\s*"([^"]+)"\s*\)', raw_action, re.IGNORECASE)
+        # Scroll: scroll("up") or scroll("down") - search anywhere
+        scroll_match = re.search(
+            r'scroll\s*\(\s*["\']?(up|down)["\']?\s*\)', raw_action, re.IGNORECASE
+        )
+        if scroll_match:
+            direction = scroll_match.group(1).lower()
+            return AgentAction.scroll(direction=direction, reasoning=reasoning)  # type: ignore
+
+        # Key press: press("Enter") - search anywhere
+        press_match = re.search(r'press\s*\(\s*["\']?([^"\')\s]+)["\']?\s*\)', raw_action, re.IGNORECASE)
+        if press_match:
+            return AgentAction.press_key(press_match.group(1), reasoning=reasoning)
+
+        # Navigation: goto("url") - search anywhere
+        goto_match = re.search(r'goto\s*\(\s*["\']([^"\']+)["\']?\s*\)', raw_action, re.IGNORECASE)
+        if goto_match:
+            return AgentAction.navigate_to(goto_match.group(1), reasoning=reasoning)
+
+        # Legacy selector-based click: click("selector") - only if no index match
+        click_match = re.search(r'click\s*\(\s*"([^"]+)"\s*\)', raw_action, re.IGNORECASE)
         if not click_match:
-            click_match = re.match(r"click\s*\(\s*'([^']+)'\s*\)", raw_action, re.IGNORECASE)
+            click_match = re.search(r"click\s*\(\s*'([^']+)'\s*\)", raw_action, re.IGNORECASE)
         if click_match:
             selector = click_match.group(1)
-            # Warn about non-index selectors
             logger.warning(f"Using selector-based click (prefer index): {selector}")
             return AgentAction.click(selector, reasoning=reasoning)
 
         # Legacy selector-based type: fill("selector", "text") or type("selector", "text")
-        fill_match = re.match(
+        fill_match = re.search(
             r'(?:fill|type)\s*\(\s*["\']([^"\']+)["\']?\s*,\s*["\']([^"\']*)["\']?\s*\)',
             raw_action,
             re.IGNORECASE,
@@ -344,26 +377,14 @@ class AgentController:
             logger.warning(f"Using selector-based type (prefer index): {selector}")
             return AgentAction.type_text(text, selector, reasoning)
 
-        # Navigation: goto("url")
-        goto_match = re.match(r'goto\s*\(\s*["\']?([^"\']+)["\']?\s*\)', raw_action, re.IGNORECASE)
-        if goto_match:
-            return AgentAction.navigate_to(goto_match.group(1), reasoning=reasoning)
+        # wait(ms) action - search anywhere
+        wait_match = re.search(r'wait\s*\(\s*(\d+)\s*\)', raw_action, re.IGNORECASE)
+        if wait_match:
+            timeout = int(wait_match.group(1))
+            return AgentAction.wait(timeout=timeout, reasoning=reasoning)
 
-        # Key press: press("Enter")
-        press_match = re.match(r'press\s*\(\s*["\']?([^"\']+)["\']?\s*\)', raw_action, re.IGNORECASE)
-        if press_match:
-            return AgentAction.press_key(press_match.group(1), reasoning=reasoning)
-
-        # Scroll: scroll("up") or scroll("down")
-        scroll_match = re.match(
-            r'scroll\s*\(\s*["\']?(up|down)["\']?\s*\)', raw_action, re.IGNORECASE
-        )
-        if scroll_match:
-            direction = scroll_match.group(1).lower()
-            return AgentAction.scroll(direction=direction, reasoning=reasoning)  # type: ignore
-
-        logger.warning(f"Could not parse action: {raw_action}")
-        return AgentAction.wait(timeout=1000, reasoning=f"Unparsed: {raw_action}")
+        logger.warning(f"Could not parse action: {raw_action[:100]}")
+        return AgentAction.wait(timeout=1000, reasoning=f"Unparsed: {raw_action[:200]}")
 
     def _get_action_from_llm(self, observation: Observation) -> AgentAction:
         """Get action directly from LLM when AgentLab is not available."""
@@ -492,19 +513,71 @@ You must respond with exactly ONE action using element indices from the list abo
 - Do NOT click the same button repeatedly - if a menu appeared, click the menu item you want
 - Think step by step before choosing your action
 
-## YOUR RESPONSE
-First, briefly explain your reasoning (1-2 sentences).
-Then, on a new line, write your action.
+## YOUR RESPONSE FORMAT
+You MUST respond in this exact format:
+
+Reasoning: [1-2 sentences explaining your reasoning]
+Action: [exactly one action from the list above]
+
+CRITICAL RULES FOR YOUR ACTION:
+- Write ONLY the action function call after "Action:"
+- Do NOT write explanations, observations, or JSON after "Action:"
+- Do NOT repeat the element list or page content
+- Examples of CORRECT responses:
+  Reasoning: I need to click the Submit button to proceed.
+  Action: click(15)
+  
+  Reasoning: I should type the search query.
+  Action: type(3, "hello world")
+
+- Examples of INCORRECT responses:
+  Action: I will click on element 15 which is the submit button  <- WRONG (explanation instead of action)
+  Action: JSON object with element and type fields  <- WRONG (JSON instead of action)
 
 Action:"""
         return prompt
 
     def _parse_llm_response(self, response: str) -> AgentAction:
-        """Parse LLM response into an AgentAction."""
-        lines = response.strip().split("\n")
+        """Parse LLM response into an AgentAction.
+        
+        Handles various response formats:
+        1. Clean action on its own line
+        2. Action embedded in reasoning text
+        3. Action after "Action:" label
+        """
+        response_stripped = response.strip()
+        
+        # Check if response looks like garbage (e.g., dumped JSON observation)
+        if self._looks_like_garbage(response_stripped):
+            logger.warning("Model output appears to be malformed (possible observation dump)")
+            return self._fallback_action()
+        
+        # First, try to find action after an "Action:" label
+        action_label_match = re.search(
+            r'(?:^|\n)\s*(?:Action|action|ACTION)\s*:\s*(.+?)(?:\n|$)',
+            response_stripped,
+            re.MULTILINE
+        )
+        if action_label_match:
+            action_text = action_label_match.group(1).strip()
+            action = self._parse_browsergym_action(action_text, reasoning=response[:200])
+            if action.action_type != "wait":
+                return action
+        
+        # Try to parse the entire response (action might be embedded in text)
+        action = self._parse_browsergym_action(response_stripped, reasoning=response[:200])
+        if action.action_type != "wait":
+            return action
+        
+        # Try each line separately (from end, since action often comes last)
+        lines = response_stripped.split("\n")
         for line in reversed(lines):
             line = line.strip()
-            if not line:
+            if not line or len(line) < 4:
+                continue
+            
+            # Skip lines that look like JSON or observation data
+            if line.startswith('{') or line.startswith('"') or line.startswith('['):
                 continue
 
             action = self._parse_browsergym_action(line, reasoning=response[:200])
@@ -512,6 +585,31 @@ Action:"""
                 return action
 
         return self._fallback_action()
+    
+    def _looks_like_garbage(self, text: str) -> bool:
+        """Check if the response looks like malformed output (e.g., JSON dump)."""
+        # Count JSON-like patterns
+        json_patterns = [
+            r'"[a-z_]+"\s*:',  # JSON keys
+            r'"bounding_box"',
+            r'"node_id"',
+            r'"element"',
+            r'"attributes"',
+        ]
+        
+        json_count = sum(1 for pattern in json_patterns if re.search(pattern, text))
+        
+        # If more than 3 JSON patterns found, likely garbage
+        if json_count >= 3:
+            return True
+        
+        # If response is mostly JSON-like lines
+        lines = text.split('\n')
+        json_lines = sum(1 for line in lines if line.strip().startswith(('{', '}', '"', '[')))
+        if len(lines) > 5 and json_lines / len(lines) > 0.5:
+            return True
+        
+        return False
 
     def _fallback_action(self) -> AgentAction:
         """Return a fallback action when parsing fails."""
