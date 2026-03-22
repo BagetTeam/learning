@@ -14,6 +14,8 @@ from metabase_agent.env.playwright_env import PlaywrightEnv
 from metabase_agent.evaluation.rules import RuleBasedEvaluator
 from metabase_agent.logging.artifacts import ArtifactLogger
 from metabase_agent.logging.traces import StepTrace
+from metabase_agent.tasks.prerequisites import check_prerequisites, PrerequisiteChecker
+from metabase_agent.metabase.api import MetabaseClient
 
 if TYPE_CHECKING:
     from metabase_agent.tasks.models import TaskSpec
@@ -30,13 +32,17 @@ class RunResult:
     total_steps: int = 0
     elapsed_seconds: float = 0.0
     traces: list[StepTrace] = field(default_factory=list)
+    agent_answer: str | None = None  # The agent's final answer/report when calling done()
+    prerequisites_satisfied: bool = True  # Whether task prerequisites were met
+    missing_prerequisites: list[str] = field(default_factory=list)
 
 
 class TaskRunner:
     """Orchestrates running a task through the browser agent loop."""
 
-    def __init__(self, config: AppConfig) -> None:
+    def __init__(self, config: AppConfig, skip_prerequisites: bool = False) -> None:
         self.config = config
+        self.skip_prerequisites = skip_prerequisites
         self.logger = logging.getLogger(__name__)
 
     def run(self, task: "TaskSpec") -> RunResult:
@@ -47,6 +53,32 @@ class TaskRunner:
         artifacts_dir = self.config.artifacts_dir / f"{task.id}_{run_id}"
         artifact_logger = ArtifactLogger(artifacts_dir)
         artifact_logger.save_task_spec(task)
+
+        # Check prerequisites before running
+        if task.has_requirements() and not self.skip_prerequisites:
+            self.logger.info("Checking task prerequisites...")
+            prereq_result = check_prerequisites(
+                task=task,
+                metabase_url=self.config.metabase.url,
+                username=self.config.metabase.username,
+                password=self.config.metabase.password,
+            )
+            
+            if not prereq_result.satisfied:
+                self.logger.error(f"Prerequisites not satisfied: {prereq_result.missing}")
+                return RunResult(
+                    success=False,
+                    summary=f"Prerequisites not satisfied: {', '.join(prereq_result.missing)}",
+                    error="Missing prerequisites",
+                    artifacts_dir=artifacts_dir,
+                    total_steps=0,
+                    elapsed_seconds=time.time() - start_time,
+                    traces=[],
+                    agent_answer=None,
+                    prerequisites_satisfied=False,
+                    missing_prerequisites=prereq_result.missing,
+                )
+            self.logger.info("All prerequisites satisfied")
 
         env = PlaywrightEnv(
             headless=self.config.headless,
@@ -166,21 +198,43 @@ class TaskRunner:
         )
 
         elapsed = time.time() - start_time
-        success = done and error is None
 
+        # Evaluate task success based on criteria, not just completion
         final_evaluation = evaluator.evaluate(task, traces, obs) if "obs" in locals() else None
-        summary = (
-            final_evaluation.reason if final_evaluation else "Task did not complete successfully"
-        )
+        
+        # Success requires:
+        # 1. Agent completed (called done() or evaluation passed mid-run)
+        # 2. No runtime errors occurred
+        # 3. All success criteria passed (most important!)
+        criteria_passed = final_evaluation.success if final_evaluation else False
+        success = done and error is None and criteria_passed
+        
+        # Build summary message
+        if error:
+            summary = f"Runtime error: {error}"
+        elif not done:
+            summary = "Task did not complete (max steps or timeout reached)"
+        elif not criteria_passed:
+            summary = final_evaluation.reason if final_evaluation else "Evaluation criteria not met"
+        else:
+            summary = final_evaluation.reason if final_evaluation else "Task completed successfully"
+
+        # Extract agent's answer from the done() action reasoning
+        agent_answer = None
+        if traces:
+            last_trace = traces[-1]
+            if last_trace.action.action_type == "done" and last_trace.action.reasoning:
+                agent_answer = last_trace.action.reasoning
 
         result = RunResult(
             success=success,
-            summary=summary if success else (error or "Unknown failure"),
+            summary=summary,
             error=error,
             artifacts_dir=artifacts_dir,
             total_steps=step,
             elapsed_seconds=elapsed,
             traces=traces,
+            agent_answer=agent_answer,
         )
 
         artifact_logger.save_summary(result)
