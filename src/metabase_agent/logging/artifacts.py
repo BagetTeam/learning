@@ -113,6 +113,9 @@ class ArtifactLogger:
             "elapsed_seconds": result.elapsed_seconds,
             "artifacts_dir": str(result.artifacts_dir),
             "timestamp": datetime.now().isoformat(),
+            "agent_answer": result.agent_answer,
+            "prerequisites_satisfied": getattr(result, "prerequisites_satisfied", True),
+            "missing_prerequisites": getattr(result, "missing_prerequisites", []),
         }
 
         path = self.artifacts_dir / "summary.json"

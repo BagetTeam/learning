@@ -158,6 +158,129 @@ class MetabaseClient:
         """
         dashboards = self.get_dashboards()
         return any(d.get("name", "").lower() == name.lower() for d in dashboards)
+    
+    def find_dashboard_by_name(self, name: str) -> dict[str, Any] | None:
+        """Find a dashboard by name (case-insensitive partial match).
+
+        Args:
+            name: Dashboard name to search for.
+
+        Returns:
+            Dashboard object or None if not found.
+        """
+        dashboards = self.get_dashboards()
+        name_lower = name.lower()
+        for d in dashboards:
+            if name_lower in d.get("name", "").lower():
+                return d
+        return None
+    
+    def find_question_by_name(self, name: str) -> dict[str, Any] | None:
+        """Find a question by name (case-insensitive partial match).
+
+        Args:
+            name: Question name to search for.
+
+        Returns:
+            Question object or None if not found.
+        """
+        questions = self.get_questions()
+        name_lower = name.lower()
+        for q in questions:
+            if name_lower in q.get("name", "").lower():
+                return q
+        return None
+
+    def get_collections(self) -> list[dict[str, Any]]:
+        """Get all collections.
+
+        Returns:
+            List of collection objects.
+        """
+        try:
+            response = self._client.get(
+                f"{self.base_url}/api/collection",
+                headers=self._headers(),
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.error(f"Failed to get collections: {e}")
+            return []
+
+    def collection_exists(self, name: str) -> bool:
+        """Check if a collection with the given name exists.
+
+        Args:
+            name: Collection name to search for.
+
+        Returns:
+            True if a collection with that name exists.
+        """
+        collections = self.get_collections()
+        return any(c.get("name", "").lower() == name.lower() for c in collections)
+
+    def get_alerts(self) -> list[dict[str, Any]]:
+        """Get all alerts.
+
+        Returns:
+            List of alert objects.
+        """
+        try:
+            response = self._client.get(
+                f"{self.base_url}/api/alert",
+                headers=self._headers(),
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.error(f"Failed to get alerts: {e}")
+            return []
+
+    def alert_exists(self, name: str | None = None) -> bool:
+        """Check if an alert exists.
+
+        Args:
+            name: Optional name to filter by.
+
+        Returns:
+            True if an alert exists (optionally matching name).
+        """
+        alerts = self.get_alerts()
+        if not name:
+            return bool(alerts)
+        return any(name.lower() in str(a).lower() for a in alerts)
+
+    def get_pulses(self) -> list[dict[str, Any]]:
+        """Get all pulses/subscriptions.
+
+        Returns:
+            List of pulse objects.
+        """
+        try:
+            response = self._client.get(
+                f"{self.base_url}/api/pulse",
+                headers=self._headers(),
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.error(f"Failed to get pulses: {e}")
+            return []
+
+    def subscription_exists(self, name: str | None = None) -> bool:
+        """Check if a subscription/pulse exists.
+
+        Args:
+            name: Optional name to filter by.
+
+        Returns:
+            True if a subscription exists (optionally matching name).
+        """
+        pulses = self.get_pulses()
+        if not name:
+            return bool(pulses)
+        return any(name.lower() in (p.get("name") or "").lower() for p in pulses)
 
     def close(self) -> None:
         """Close the HTTP client."""
