@@ -471,6 +471,9 @@ clicking a different element after the first click.
 """
 
         # Build the prompt with index-based actions
+        # Include visible page content so agent can see data values (not just interactive elements)
+        page_content = observation.text_content[:3000] if observation.text_content else "(No text content visible)"
+        
         prompt = f"""You are a browser automation agent. Complete the task by interacting with page elements.
 
 ## YOUR TASK
@@ -481,6 +484,9 @@ clicking a different element after the first click.
 - Title: {observation.title}
 - Step: {self._step_count} of {self._task.max_steps if self._task else 30}
 {error_section}{state_warning}{history_section}
+## VISIBLE PAGE CONTENT (read this to find data values)
+{page_content}
+
 ## INTERACTIVE ELEMENTS (use these indices for actions)
 {observation.axtree[:4000] if observation.axtree else "No interactive elements found"}
 
@@ -521,6 +527,12 @@ You must respond with exactly ONE action using element indices from the list abo
   Look at the INTERACTIVE ELEMENTS list carefully for these new options and click on them!
 - Do NOT click the same button repeatedly - if a menu appeared, click the menu item you want
 - Think step by step before choosing your action
+
+## WHEN TO USE answer()
+- If the task asks you to "find", "report", "what is", or "identify" a value, you MUST use answer() once you find it
+- Look at the page content and interactive elements - if you can see the value you're looking for, call answer() immediately
+- Do NOT keep navigating or filtering if you can already see the answer on the current page
+- Example: If asked "What is the unit price?" and you see "Unit Price: 42.50" on the page, call answer("42.50")
 
 ## YOUR RESPONSE FORMAT
 You MUST respond in this exact format:
