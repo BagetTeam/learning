@@ -27,7 +27,6 @@ webarena-pro/
 
 - If you want to run website environments: begin in `webarena-pro-envs/`.
 - If you want to run benchmark studies: begin in `webarena-pro/`.
-- If you want to work on agents/experiments: begin in `AgentLab/`.
 
 ## Contributing to WebArena Pro
 
