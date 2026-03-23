@@ -242,6 +242,9 @@ class RuleBasedEvaluator:
         elif key == "response_contains":
             return self._check_response_contains(value, traces)
 
+        elif key == "agent_answered":
+            return self._check_agent_answered(value, traces)
+
         else:
             self.logger.warning(f"Unknown criterion: {key}")
             return False
@@ -705,4 +708,62 @@ class RuleBasedEvaluator:
                     if formatted in reasoning:
                         return True
                         
+        return False
+
+    def _check_agent_answered(self, expected_value: str, traces: list["StepTrace"]) -> bool:
+        """
+        Check if the agent provided an answer using the answer() action.
+        
+        Args:
+            expected_value: Either "true" (just check agent answered something),
+                          or a specific value to match against the answer.
+            traces: List of step traces from the run.
+        
+        Returns:
+            True if the agent answered (and matches expected value if specified).
+        """
+        expected_lower = expected_value.lower().strip()
+        
+        # Check if we just need to verify the agent answered (any value)
+        check_any_answer = expected_lower in ("true", "yes", "1", "")
+        
+        # Try to parse expected as a number for flexible numeric matching
+        expected_numeric = None
+        if not check_any_answer:
+            try:
+                expected_numeric = float(expected_value.replace(",", "").replace("$", ""))
+            except ValueError:
+                pass
+        
+        for trace in traces:
+            if not trace.action:
+                continue
+            
+            # Only check answer() actions
+            if trace.action.action_type != "answer":
+                continue
+            
+            answer_value = trace.action.value or ""
+            
+            # If we just need to check that the agent answered something
+            if check_any_answer:
+                return bool(answer_value.strip())
+            
+            # Check for exact match (case-insensitive)
+            if expected_lower == answer_value.lower().strip():
+                return True
+            
+            # Check for substring match
+            if expected_lower in answer_value.lower():
+                return True
+            
+            # Numeric matching with tolerance
+            if expected_numeric is not None:
+                try:
+                    answer_numeric = float(answer_value.replace(",", "").replace("$", ""))
+                    if abs(answer_numeric - expected_numeric) < 0.01:
+                        return True
+                except ValueError:
+                    pass
+        
         return False
