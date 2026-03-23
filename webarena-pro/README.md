@@ -28,15 +28,6 @@ From the monorepo root:
 
 ```bash
 cd webarena-pro
-python -m venv .venv
-source .venv/bin/activate
-pip install -e .
-```
-
-If you use `uv`, an equivalent setup is:
-
-```bash
-cd webarena-pro
 uv pip install -e .
 ```
 
@@ -67,8 +58,7 @@ An example script is included at `scripts/run_gpt_5_nano.py`.
 From `webarena-pro/`:
 
 ```bash
-source .venv/bin/activate
-python scripts/run_gpt_5_nano.py
+uv run scripts/run_gpt_5_nano.py
 ```
 
 This creates a `WebArenaProBenchmark`, wraps it in `WebArenaProStudy`, and runs with Ray backend.
