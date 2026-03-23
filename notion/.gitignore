@@ -1,0 +1,10 @@
+node_modules
+.next
+.env
+.env.local
+.prisma
+.next*/
+
+# Runtime uploads (HF Spaces blocks binary files in regular Git history)
+public/uploads/*
+!public/uploads/.gitkeep
