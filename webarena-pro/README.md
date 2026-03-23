@@ -83,6 +83,15 @@ study = WebArenaProStudy(agent_args=[agent], benchmark=benchmark, comment="local
 study.run(n_jobs=1, parallel_backend="ray", n_relaunch=1)
 ```
 
+## Analyzing traces with xray
+
+Analyze traces using `àgentlab-xray`:
+
+```bash
+source .venv/bin/activate
+agentlab-xray
+```
+
 ## Task set and URLs
 
 - Default task file: `src/webarena_pro/config/test.raw.json`
@@ -98,14 +107,13 @@ Current default URLs:
 From `webarena-pro/`:
 
 ```bash
-source .venv/bin/activate
-pytest -q
+uv run pytest -q
 ```
 
 Focused benchmark/task tests:
 
 ```bash
-pytest tests/test_task.py tests/test_benchmark.py -q
+uv run pytest tests/test_task.py tests/test_benchmark.py -q
 ```
 
 ## Project layout
