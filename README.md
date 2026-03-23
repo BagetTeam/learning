@@ -45,59 +45,6 @@ git merge upstream/main
 
 ```
 
-## Pushing Images to GitHub Registry
-
-Once your Docker image is built and tested locally, push it to the McGill-NLP GitHub registry so that it becomes available to all members of the team. Follow these steps:
-
-1 - Create a classic GitHub Access Token with permissions: `repo` and `packages`. Then export the token with the following command:
-```sh
-export CR_PAT=<YOUR_TOKEN> # generally starts with ghp_...
-```
-2 - Authenticate to the GitHub registry with your username and the token you just created:
-```sh
- echo $CR_PAT | docker login ghcr.io -u USERNAME --password-stdin
-``` 
-3 - Tag your image so that it will be pushed to the correct registry:
-```sh
-docker tag <IMAGE_ID> ghcr.io/mcgill-nlp/<IMAGE_NAME>:<VERSION>
-
-# Example: I have a local image hello-world:latest with ID 1b44b5a3e06a
-docker tag 1b44b5a3e06a ghcr.io/mcgill-nlp/hello-world:latest
-```
-4 - Push the tagged image to the registry:
-```sh
-docker push ghcr.io/mcgill-nlp/<IMAGE_NAME>:<VERSION>
-
-# Example
-docker push ghcr.io/mcgill-nlp/hello-world:latest
-```
-
-If all steps are completed correctly, you should see your image in the Packages section on McGill-NLP organization page.
-
-<img width="1017" height="375" alt="image" src="https://github.com/user-attachments/assets/b70fb73a-d0cf-4e51-b7e4-53e9cb51a964" />
-
-
-To use an image published to the registry, run (the exact command is given when you click on the desired package):
-
-```sh
-docker pull ghcr.io/mcgill-nlp/<IMAGE_NAME>:<VERSION>
-
-# Example
-docker pull ghcr.io/mcgill-nlp/hello-world:latest
-```
-
-(Optional) Before building the image locally, add the following command to your Dockerfile. This will link the image to the `webarena-pro` repository.
-
-```sh
-LABEL org.opencontainers.image.source https://github.com/McGill-NLP/webarena-pro
-
-# Run docker build
-docker build ...
-
-# Follow previous steps to push the image to the registry
-...
-```
-
 ## 🌳 Recommended Workflow: Git Worktrees
 
 If you frequently find yourself switching between branches, stashing half-finished work, or needing to test the `main` branch while in the middle of a complex feature, we highly recommend using **Git Worktrees**. 
