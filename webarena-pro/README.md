@@ -85,7 +85,7 @@ study.run(n_jobs=1, parallel_backend="ray", n_relaunch=1)
 
 ## Analyzing traces with xray
 
-Analyze traces using `àgentlab-xray`:
+Analyze traces using `agentlab-xray`:
 
 ```bash
 source .venv/bin/activate

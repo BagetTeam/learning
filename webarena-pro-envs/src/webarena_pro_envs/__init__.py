@@ -3,6 +3,7 @@ WEBSITES_IMAGES = {
     "flight-search": "webarenapro/flight-search:latest",
     "jobportal": "webarenapro/jobportal:latest",
     "dealflow": "webarenapro/dealflow:latest",
+    "mattermost": "webarenapro/mattermost:latest",
 }
 
 WEBSITES_CONTAINER_PORTS = {
@@ -10,6 +11,7 @@ WEBSITES_CONTAINER_PORTS = {
     "flight-search": 80,
     "jobportal": 8000,
     "dealflow": 4520,
+    "mattermost": 8065,
 }
 
 WEBSITES_HOST_PORTS = {
@@ -17,6 +19,7 @@ WEBSITES_HOST_PORTS = {
     "flight-search": 2210,
     "jobportal": 4510,
     "dealflow": 4520,
+    "mattermost": 8065,
 }
 
 WEBSITES_FIXED_URLS = {
