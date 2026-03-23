@@ -96,6 +96,7 @@ class RuleBasedEvaluator:
  
     Instructions/summarization:
       - response_contains: <substring>      # agent's response contains text
+      - response_contains_any: [val1, val2] # agent's response contains any of these values
     """
 
     def __init__(self) -> None:
@@ -241,6 +242,9 @@ class RuleBasedEvaluator:
         # ---- Instructions/summarization ----
         elif key == "response_contains":
             return self._check_response_contains(value, traces)
+
+        elif key == "response_contains_any":
+            return self._check_response_contains_any(criterion, traces)
 
         elif key == "agent_answered":
             return self._check_agent_answered(value, traces)
@@ -708,6 +712,38 @@ class RuleBasedEvaluator:
                     if formatted in reasoning:
                         return True
                         
+        return False
+
+    def _check_response_contains_any(
+        self, criterion: str | dict, traces: list["StepTrace"]
+    ) -> bool:
+        """
+        Check if the agent's response contains ANY of the specified values.
+        Used when multiple answers are acceptable (e.g., tied results).
+        
+        Accepts criterion in these formats:
+        - dict: {"response_contains_any": [val1, val2, ...]}
+        - dict: {"response_contains_any": "val1, val2, ..."}  (comma-separated string)
+        """
+        # Extract the list of acceptable values
+        if isinstance(criterion, dict):
+            values = criterion.get("response_contains_any", [])
+            if isinstance(values, str):
+                # Handle comma-separated string
+                values = [v.strip() for v in values.split(",")]
+        else:
+            # Shouldn't happen, but handle string case
+            values = [v.strip() for v in str(criterion).split(",")]
+        
+        if not values:
+            self.logger.warning("response_contains_any: no values provided")
+            return False
+        
+        # Check each acceptable value
+        for value in values:
+            if self._check_response_contains(str(value), traces):
+                return True
+        
         return False
 
     def _check_agent_answered(self, expected_value: str, traces: list["StepTrace"]) -> bool:
