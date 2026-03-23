@@ -2,6 +2,33 @@
 
 Welcome to WebArena-Pro's project repository!
 
+## Repository Structure
+
+This monorepo contains benchmark code, environment orchestration, and website apps used for WebArena-Pro experiments.
+
+```text
+webarena-pro/
+├── webarena-pro/          # Core WebArena-Pro Python package (benchmark/task/study/eval)
+├── webarena-pro-envs/     # CLI + container lifecycle for local benchmark websites
+├── websites/              # Website environments used by benchmark tasks
+│   ├── flight-search/
+│   ├── jobportal/
+│   └── pipedrive/
+└── README.md              # Repository-level contribution and workflow guide
+```
+
+### Folder Guide
+
+- `webarena-pro/`: benchmark-facing package code, including task loading and execution logic.
+- `webarena-pro-envs/`: `webarena-pro env ...` CLI for starting/stopping/restarting local website containers.
+- `websites/`: application backends/frontends that agents interact with during tasks.
+
+### Where to Start
+
+- If you want to run website environments: begin in `webarena-pro-envs/`.
+- If you want to run benchmark studies: begin in `webarena-pro/`.
+- If you want to work on agents/experiments: begin in `AgentLab/`.
+
 ## Contributing to WebArena Pro
 
 Since all contributors currently have **read-only access** to the main repository, all code contributions must follow the standard **Fork and Pull Request** workflow.
