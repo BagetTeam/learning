@@ -105,6 +105,7 @@ The setup script will:
 3. **Create SQL query** - "Revenue by Category" analysis
 4. **Create Sales dashboard** - "Sales Overview" with charts
 5. **Create AgentLab documentation** - Interactive docs dashboard explaining AgentLab
+6. **Save auth state** - Create `.auth/metabase_admin_state.json` for browser agent tasks
 
 Example output:
 
@@ -116,32 +117,36 @@ URL: http://localhost:3000
 Waiting for Metabase at http://localhost:3000...
 Metabase is ready.
 
-Step 1/5: Checking first-time setup...
+Step 1/6: Checking first-time setup...
   Creating admin user: admin@admin.com
   First-time setup completed successfully
 
 Authenticated successfully.
 
-Step 2/5: Adding database...
+Step 2/6: Adding database...
   Created database 'my-db' with ID: 2
 
-Step 3/5: Creating SQL query...
+Step 3/6: Creating SQL query...
   Created SQL question 'Revenue by Category' with ID: 1
 
-Step 4/5: Creating Sales dashboard...
+Step 4/6: Creating Sales dashboard...
   Created question 'Orders by Status' with ID: 2
   Created dashboard 'Sales Overview' with ID: 1
   Added header and questions to dashboard
 
-Step 5/5: Creating AgentLab documentation...
+Step 5/6: Creating AgentLab documentation...
   Created dashboard 'AgentLab Documentation' with ID: 2
   Added 5 documentation sections
+
+Step 6/6: Saving auth state for browser agent...
+  Auth state saved to ./.auth/metabase_admin_state.json
 
 ==================================================
 Setup Complete!
 ==================================================
 Sales Dashboard: http://localhost:3000/dashboard/1
 AgentLab Docs:   http://localhost:3000/dashboard/2
+Auth State:      ./.auth/metabase_admin_state.json
 ```
 
 ### 6. Access Metabase
@@ -175,6 +180,7 @@ Individual scripts are available in `setup_scripts/`:
 | `add_sql_query.py` | Create SQL question only |
 | `add_dashboard.py` | Create Sales dashboard only |
 | `add_documentation.py` | Create AgentLab documentation dashboard |
+| `save_auth_state.py` | Save Playwright auth state for browser agent |
 
 Run individual scripts:
 
@@ -184,6 +190,7 @@ python setup_scripts/add_database.py
 python setup_scripts/add_sql_query.py
 python setup_scripts/add_dashboard.py
 python setup_scripts/add_documentation.py
+python setup_scripts/save_auth_state.py
 ```
 
 All scripts are **idempotent** - they skip resources that already exist.
@@ -294,7 +301,12 @@ webarena-pro/
 │   ├── add_database.py     # Add database
 │   ├── add_sql_query.py    # Create SQL question
 │   ├── add_dashboard.py    # Create Sales dashboard
-│   └── add_documentation.py # Create AgentLab docs dashboard
+│   ├── add_documentation.py # Create AgentLab docs dashboard
+│   └── save_auth_state.py  # Save Playwright auth state
+├── .auth/                  # Auth state for browser agent (generated)
+│   └── metabase_admin_state.json
+├── tasks/                  # Browser agent task definitions
+│   └── task_*.json
 ├── src/
 │   └── metabase_agent/     # Browser agent (experimental)
 │       ├── cli.py          # Command-line interface

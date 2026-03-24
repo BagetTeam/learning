@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 """
 Script to generate .auth/metabase_admin_state.json for AgentLab tasks.
-Run this after setup.py has completed Metabase first-time setup.
+Saves a Playwright-compatible storage state with the Metabase session cookie.
+Run this after Metabase first-time setup is complete.
 """
-import os
+
 import json
+import os
+import sys
+
 import httpx
 from dotenv import load_dotenv
 
@@ -14,6 +18,7 @@ METABASE_URL = os.getenv("METABASE_URL", "http://localhost:3000")
 METABASE_USERNAME = os.getenv("METABASE_USERNAME", "admin@admin.com")
 METABASE_PASSWORD = os.getenv("METABASE_PASSWORD", "apassword123")
 AUTH_STATE_PATH = "./.auth/metabase_admin_state.json"
+
 
 def get_session_token() -> str | None:
     """Log in to Metabase and return the session token."""
@@ -29,33 +34,49 @@ def get_session_token() -> str | None:
         print(f"Login failed: {e}")
         return None
 
-def save_auth_state(token: str):
+
+def save_auth_state(token: str) -> bool:
     """Save the session token as a Playwright-compatible storage state file."""
     os.makedirs(os.path.dirname(AUTH_STATE_PATH), exist_ok=True)
     state = {
-        "cookies": [{
-            "name": "metabase.SESSION",
-            "value": token,
-            "domain": "localhost",
-            "path": "/",
-            "httpOnly": True,
-            "secure": False,
-            "sameSite": "Lax"
-        }],
-        "origins": []
+        "cookies": [
+            {
+                "name": "metabase.SESSION",
+                "value": token,
+                "domain": "localhost",
+                "path": "/",
+                "httpOnly": True,
+                "secure": False,
+                "sameSite": "Lax",
+            }
+        ],
+        "origins": [],
     }
-    with open(AUTH_STATE_PATH, "w") as f:
-        json.dump(state, f, indent=2)
-    print(f"Auth state saved to {AUTH_STATE_PATH}")
+    try:
+        with open(AUTH_STATE_PATH, "w") as f:
+            json.dump(state, f, indent=2)
+        return True
+    except OSError as e:
+        print(f"Failed to write auth state: {e}")
+        return False
+
 
 def main():
-    print(f"Logging in to Metabase at {METABASE_URL} as {METABASE_USERNAME}...")
+    print(f"Logging in to Metabase at {METABASE_URL}...")
+
     token = get_session_token()
     if not token:
         print("Could not obtain session token. Is Metabase running and setup complete?")
-        return
+        sys.exit(1)
+
     print(f"Login successful. Session token: {token[:8]}...")
-    save_auth_state(token)
+
+    if save_auth_state(token):
+        print(f"Auth state saved to {AUTH_STATE_PATH}")
+        print("\nBrowser agent tasks can now use this auth state for pre-authenticated sessions.")
+    else:
+        sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

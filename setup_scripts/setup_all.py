@@ -2,9 +2,10 @@
 """
 Combined setup script for Metabase.
 Runs all setup steps: first-time setup, add database, create SQL query, create dashboard,
-and AgentLab documentation.
+AgentLab documentation, and auth state for browser agent tasks.
 """
 
+import json
 import os
 import sys
 import time
@@ -51,6 +52,7 @@ ORDER BY total_revenue DESC
 SIMPLE_QUESTION_NAME = "Orders by Status"
 DASHBOARD_NAME = "Sales Overview"
 DOCS_DASHBOARD_NAME = "AgentLab Documentation"
+AUTH_STATE_PATH = "./.auth/metabase_admin_state.json"
 
 
 class MetabaseClient:
@@ -247,7 +249,7 @@ class MetabaseClient:
 
 def step_first_time_setup(client: MetabaseClient) -> bool:
     """Step 1: Complete first-time Metabase setup if needed."""
-    print("Step 1/5: Checking first-time setup...")
+    print("Step 1/6: Checking first-time setup...")
 
     # First, try to authenticate - if it works, setup is already complete
     if client.authenticate():
@@ -276,7 +278,7 @@ def step_first_time_setup(client: MetabaseClient) -> bool:
 
 def step_add_database(client: MetabaseClient) -> int:
     """Step 2: Add database if not exists."""
-    print("Step 2/5: Adding database...")
+    print("Step 2/6: Adding database...")
 
     db_id = client.get_database_id(DATABASE_NAME)
     if db_id:
@@ -290,7 +292,7 @@ def step_add_database(client: MetabaseClient) -> int:
 
 def step_add_sql_query(client: MetabaseClient, database_id: int) -> int:
     """Step 3: Add SQL query if not exists."""
-    print("Step 3/5: Creating SQL query...")
+    print("Step 3/6: Creating SQL query...")
 
     card_id = client.get_card_id(SQL_QUERY_NAME)
     if card_id:
@@ -323,7 +325,7 @@ def step_add_dashboard(
     client: MetabaseClient, database_id: int, sql_card_id: int
 ) -> int:
     """Step 4: Add dashboard with questions."""
-    print("Step 4/5: Creating Sales dashboard...")
+    print("Step 4/6: Creating Sales dashboard...")
 
     # Check if dashboard exists
     dashboard_id = client.get_dashboard_id(DASHBOARD_NAME)
@@ -414,7 +416,7 @@ def step_add_dashboard(
 
 def step_add_documentation(client: MetabaseClient) -> int:
     """Step 5: Add AgentLab documentation dashboard."""
-    print("Step 5/5: Creating AgentLab documentation...")
+    print("Step 5/6: Creating AgentLab documentation...")
 
     # Check if dashboard exists
     dashboard_id = client.get_dashboard_id(DOCS_DASHBOARD_NAME)
@@ -556,6 +558,40 @@ while not done:
     return dashboard_id
 
 
+def step_save_auth_state(client: MetabaseClient) -> bool:
+    """Step 6: Save auth state for browser agent tasks."""
+    print("Step 6/6: Saving auth state for browser agent...")
+
+    if not client.token:
+        print("  No session token available")
+        return False
+
+    os.makedirs(os.path.dirname(AUTH_STATE_PATH), exist_ok=True)
+    state = {
+        "cookies": [
+            {
+                "name": "metabase.SESSION",
+                "value": client.token,
+                "domain": "localhost",
+                "path": "/",
+                "httpOnly": True,
+                "secure": False,
+                "sameSite": "Lax",
+            }
+        ],
+        "origins": [],
+    }
+
+    try:
+        with open(AUTH_STATE_PATH, "w") as f:
+            json.dump(state, f, indent=2)
+        print(f"  Auth state saved to {AUTH_STATE_PATH}")
+        return True
+    except OSError as e:
+        print(f"  Failed to write auth state: {e}")
+        return False
+
+
 def wait_for_metabase(url: str, timeout: int = 120) -> bool:
     """Wait for Metabase to be ready."""
     print(f"Waiting for Metabase at {url}...")
@@ -611,6 +647,9 @@ def main():
         docs_dashboard_id = step_add_documentation(client)
         print("")
 
+        step_save_auth_state(client)
+        print("")
+
     except httpx.HTTPStatusError as e:
         print(f"API error: {e}")
         print(f"Response: {e.response.text}")
@@ -624,6 +663,7 @@ def main():
     print("=" * 50)
     print(f"Sales Dashboard: {METABASE_URL}/dashboard/{dashboard_id}")
     print(f"AgentLab Docs:   {METABASE_URL}/dashboard/{docs_dashboard_id}")
+    print(f"Auth State:      {AUTH_STATE_PATH}")
 
 
 if __name__ == "__main__":
