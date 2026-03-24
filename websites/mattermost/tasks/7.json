@@ -1,0 +1,31 @@
+{
+  "sites": ["mattermost"],
+  "task_id": 7,
+  "require_login": true,
+  "storage_state": "./.auth/mattermost_admin_state.json",
+  "start_url": "http://localhost:8065",
+  "geolocation": null,
+  "intent_template": "In the Infrastructure Status Report for the week of {{week}} posted in the devops channel, what was the production uptime percentage, and what caused the p99 latency spike? How was it resolved?",
+  "instantiation_dict": {
+    "week": "March 10"
+  },
+  "intent": "In the Infrastructure Status Report for the week of March 10 posted in the devops channel, what was the production uptime percentage, and what caused the p99 latency spike? How was it resolved?",
+  "require_reset": false,
+  "difficulty": "hard",
+  "estimated_actions": 25,
+  "eval": {
+    "eval_types": ["string_match"],
+    "reference_answers": {
+      "must_include": [
+        "99.97%",
+        "connection pool",
+        "50"
+      ]
+    },
+    "reference_url": "",
+    "program_html": [],
+    "string_note": "Bob's infra status report in Engineering > devops: Uptime 99.97%, p99 spike caused by PostgreSQL connection pool exhaustion, fixed by increasing pool size from 20 to 50 connections and adding connection timeout handling.",
+    "reference_answer_raw_annotation": "Production uptime was 99.97% (1 brief 3-min outage on Wednesday). The p99 latency spike was caused by PostgreSQL connection pool exhaustion. It was resolved by increasing the pool size from 20 to 50 connections and adding connection timeout handling."
+  },
+  "intent_template_id": 7
+}
