@@ -25,7 +25,12 @@
       {
         "url": "http://localhost:3000/api/card",
         "locator": "",
-        "required_contents": "bar"
+        "required_contents": {
+          "must_include": [
+            "Orders by Status",
+            "\"display\":\"bar\""
+          ]
+        }
       }
     ],
     "string_note": "Agent should navigate to Sales Overview dashboard, enter edit mode, click on the Orders by Status card, change visualization type from pie to bar chart, and save the dashboard.",

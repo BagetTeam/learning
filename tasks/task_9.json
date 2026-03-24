@@ -25,7 +25,14 @@
       {
         "url": "http://localhost:3000/api/dashboard",
         "locator": "",
-        "required_contents": "Key Python"
+        "required_contents": {
+          "must_include": [
+            "\"name\":\"AgentLab Documentation\" |OR| \"name\": \"AgentLab Documentation\"",
+            "\"archived\":false",
+            "\"view_count\":",
+            "Key Python Implementations"
+          ]
+        }
       }
     ],
     "string_note": "Agent should navigate to the AgentLab Documentation dashboard, enter edit mode, add a new text card with Python implementation details, and save.",

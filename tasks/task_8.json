@@ -27,7 +27,13 @@
       {
         "url": "http://localhost:3000/api/dashboard",
         "locator": "",
-        "required_contents": "Sales Overview Dashboard 2"
+        "required_contents": {
+          "must_include": [
+            "\"name\":\"Sales Overview Dashboard 2\" |OR| \"name\": \"Sales Overview Dashboard 2\"",
+            "\"archived\":false",
+            "\"view_count\":"
+          ]
+        }
       }
     ],
     "string_note": "Agent should create a new dashboard with a heading and two question cards side by side, matching the layout of Sales Overview Dashboard.",

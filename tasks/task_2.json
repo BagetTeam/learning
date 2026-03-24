@@ -11,10 +11,10 @@
     "database": "my-db",
     "question_name": "Recent Orders - Last 7 Days"
   },
-  "intent": "Create a new question that shows all orders from the past week using the Orders table from the my-db database. Save it as \"Recent Orders - Last 7 Days\".",
-  "require_reset": false,
+  "intent": "Create a new question that shows all orders from the last 7 days using the Orders table from the my-db database. Save it as \"Recent Orders - Last 7 Days\".",
+  "require_reset": true,
   "difficulty": "easy",
-  "estimated_actions": 20,
+  "estimated_actions": 15,
   "eval": {
     "eval_types": ["url_match", "program_html"],
     "reference_answers": {
@@ -25,7 +25,12 @@
       {
         "url": "http://localhost:3000/api/card",
         "locator": "",
-        "required_contents": "Recent Orders - Last 7 Days"
+        "required_contents": {
+          "must_include": [
+            "Recent Orders - Last 7 Days",
+            "\"query_type\":\"query\""
+          ]
+        }
       }
     ],
     "string_note": "Agent should create a question filtering Orders by created_at within the last 7 days and save it.",

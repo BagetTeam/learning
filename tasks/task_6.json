@@ -28,7 +28,12 @@
       {
         "url": "http://localhost:3000/api/card",
         "locator": "",
-        "required_contents": "Order Items with Order Details"
+        "required_contents": {
+          "must_include": [
+            "Order Items with Order Details",
+            "\"query_type\":\"native\" |OR| \"type\":\"native\""
+          ]
+        }
       }
     ],
     "string_note": "Agent should write SQL: SELECT oi.*, o.created_at, o.status FROM order_items oi JOIN orders o ON o.id = oi.order_id",

@@ -27,7 +27,12 @@
       {
         "url": "http://localhost:3000/api/card",
         "locator": "",
-        "required_contents": "Order Items by Unit Price"
+        "required_contents": {
+          "must_include": [
+            "Order Items by Unit Price",
+            "\"display\":\"bar\""
+          ]
+        }
       }
     ],
     "string_note": "Agent should create a question with COUNT aggregation, grouped by unit_price, displayed as bar chart, and saved with the specified name.",
