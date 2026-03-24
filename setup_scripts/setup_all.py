@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
 Combined setup script for Metabase.
-Runs all setup steps: add database, create SQL query, create dashboard.
+Runs all setup steps: first-time setup, add database, create SQL query, create dashboard.
 """
 
 import os
 import sys
+import time
 
 import httpx
 from dotenv import load_dotenv
@@ -58,6 +59,59 @@ class MetabaseClient:
         self.token: str | None = None
         self.username = username
         self.password = password
+
+    def is_setup_complete(self) -> bool:
+        """Check if Metabase first-time setup is already complete."""
+        try:
+            response = httpx.get(f"{self.url}/api/session/properties", timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("setup-token") is None and data.get("has-user-setup", False)
+        except httpx.HTTPError:
+            return False
+
+    def get_setup_token(self) -> str | None:
+        """Get the setup token (only available on fresh installs)."""
+        try:
+            response = httpx.get(f"{self.url}/api/session/properties", timeout=10)
+            response.raise_for_status()
+            return response.json().get("setup-token")
+        except httpx.HTTPError:
+            return None
+
+    def complete_first_time_setup(self) -> str | None:
+        """Complete the first-time Metabase setup and return session token."""
+        setup_token = self.get_setup_token()
+        if not setup_token:
+            return None
+
+        setup_payload = {
+            "token": setup_token,
+            "user": {
+                "email": self.username,
+                "password": self.password,
+                "first_name": "Admin",
+                "last_name": "User",
+                "site_name": "Metabase Agent",
+            },
+            "prefs": {
+                "site_name": "Metabase Agent",
+                "allow_tracking": False,
+            },
+        }
+
+        try:
+            response = httpx.post(
+                f"{self.url}/api/setup",
+                json=setup_payload,
+                timeout=30,
+            )
+            response.raise_for_status()
+            self.token = response.json().get("id")
+            return self.token
+        except httpx.HTTPError as e:
+            print(f"Failed to complete setup: {e}")
+            return None
 
     def authenticate(self) -> bool:
         """Authenticate and store session token."""
@@ -181,9 +235,32 @@ class MetabaseClient:
         return None
 
 
+def step_first_time_setup(client: MetabaseClient) -> bool:
+    """Step 1: Complete first-time Metabase setup if needed."""
+    print("Step 1/4: Checking first-time setup...")
+
+    if client.is_setup_complete():
+        print("  Metabase is already configured")
+        return True
+
+    setup_token = client.get_setup_token()
+    if not setup_token:
+        print("  No setup token available (Metabase may already be configured)")
+        return True
+
+    print(f"  Creating admin user: {client.username}")
+    token = client.complete_first_time_setup()
+    if token:
+        print("  First-time setup completed successfully")
+        return True
+    else:
+        print("  First-time setup failed")
+        return False
+
+
 def step_add_database(client: MetabaseClient) -> int:
-    """Step 1: Add database if not exists."""
-    print("Step 1/3: Adding database...")
+    """Step 2: Add database if not exists."""
+    print("Step 2/4: Adding database...")
 
     db_id = client.get_database_id(DATABASE_NAME)
     if db_id:
@@ -196,8 +273,8 @@ def step_add_database(client: MetabaseClient) -> int:
 
 
 def step_add_sql_query(client: MetabaseClient, database_id: int) -> int:
-    """Step 2: Add SQL query if not exists."""
-    print("Step 2/3: Creating SQL query...")
+    """Step 3: Add SQL query if not exists."""
+    print("Step 3/4: Creating SQL query...")
 
     card_id = client.get_card_id(SQL_QUERY_NAME)
     if card_id:
@@ -229,8 +306,8 @@ def step_add_sql_query(client: MetabaseClient, database_id: int) -> int:
 def step_add_dashboard(
     client: MetabaseClient, database_id: int, sql_card_id: int
 ) -> int:
-    """Step 3: Add dashboard with questions."""
-    print("Step 3/3: Creating dashboard...")
+    """Step 4: Add dashboard with questions."""
+    print("Step 4/4: Creating dashboard...")
 
     # Check if dashboard exists
     dashboard_id = client.get_dashboard_id(DASHBOARD_NAME)
@@ -319,6 +396,21 @@ def step_add_dashboard(
     return dashboard_id
 
 
+def wait_for_metabase(url: str, timeout: int = 120) -> bool:
+    """Wait for Metabase to be ready."""
+    print(f"Waiting for Metabase at {url}...")
+    start = time.time()
+    while time.time() - start < timeout:
+        try:
+            response = httpx.get(f"{url}/api/health", timeout=5)
+            if response.status_code == 200:
+                return True
+        except httpx.HTTPError:
+            pass
+        time.sleep(2)
+    return False
+
+
 def main():
     print("=" * 50)
     print("Metabase Setup")
@@ -326,14 +418,27 @@ def main():
     print(f"URL: {METABASE_URL}")
     print("")
 
+    # Wait for Metabase to be ready
+    if not wait_for_metabase(METABASE_URL):
+        print("Metabase did not become ready in time. Is it running?")
+        sys.exit(1)
+    print("Metabase is ready.\n")
+
     client = MetabaseClient(METABASE_URL, METABASE_USERNAME, METABASE_PASSWORD)
 
-    if not client.authenticate():
-        print("Could not authenticate with Metabase. Is it running?")
-        sys.exit(1)
-    print("Authenticated successfully.\n")
-
     try:
+        # Step 1: First-time setup (creates admin user if needed)
+        if not step_first_time_setup(client):
+            sys.exit(1)
+        print("")
+
+        # Authenticate (if not already authenticated via setup)
+        if not client.token:
+            if not client.authenticate():
+                print("Could not authenticate with Metabase.")
+                sys.exit(1)
+        print("Authenticated successfully.\n")
+
         database_id = step_add_database(client)
         print("")
 
