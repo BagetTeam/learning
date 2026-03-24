@@ -14,7 +14,7 @@
     "reference_dashboard": "Sales Overview Dashboard"
   },
   "intent": "Create a new dashboard named \"Sales Overview Dashboard 2\" with the following components: 1) A title text element at the top that says \"Sales Overview Dashboard 2\", 2) The \"Orders by Status\" question placed on the left side below the title, 3) The \"Revenue by Category\" question placed on the right side next to the first component. The layout should match the original \"Sales Overview Dashboard\" dashboard.",
-  "require_reset": false,
+  "require_reset": true,
   "difficulty": "hard",
   "estimated_actions": 35,
   "eval": {

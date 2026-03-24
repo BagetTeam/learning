@@ -12,7 +12,7 @@
     "section_title": "Key Python Implementations"
   },
   "intent": "Open the \"AgentLab Documentation\" dashboard from the \"Our Analytics\" folder. Add a new text section with a heading titled \"Key Python Implementations\" that documents key Python function implementations for using AgentLab, including: initializing a GenericAgent, setting up the browser environment, running the observation-action loop, and handling agent responses. Save the updated dashboard.",
-  "require_reset": false,
+  "require_reset": true,
   "difficulty": "hard",
   "estimated_actions": 35,
   "eval": {
