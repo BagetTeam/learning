@@ -1,0 +1,28 @@
+{
+  "sites": ["metabase"],
+  "task_id": 4,
+  "require_login": true,
+  "storage_state": "./.auth/metabase_admin_state.json",
+  "start_url": "http://localhost:3000/browse/databases",
+  "geolocation": null,
+  "intent_template": "How many products are from the vendor \"{{vendor}}\" in the Products table from the {{database}} database?",
+  "instantiation_dict": {
+    "vendor": "Legros-Gleason",
+    "database": "my-db"
+  },
+  "intent": "How many products are from the vendor \"Legros-Gleason\" in the Products table from the my-db database?",
+  "require_reset": false,
+  "difficulty": "easy",
+  "estimated_actions": 15,
+  "eval": {
+    "eval_types": ["string_match"],
+    "reference_answers": {
+      "must_include": ["3"]
+    },
+    "reference_url": "",
+    "program_html": [],
+    "string_note": "Agent must filter Products table by vendor = 'Legros-Gleason' and count the results. There are 3 products from this vendor.",
+    "reference_answer_raw_annotation": "3 products are from the vendor Legros-Gleason"
+  },
+  "intent_template_id": 4
+}

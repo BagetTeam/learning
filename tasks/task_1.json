@@ -1,0 +1,27 @@
+{
+  "sites": ["metabase"],
+  "task_id": 1,
+  "require_login": true,
+  "storage_state": "./.auth/metabase_admin_state.json",
+  "start_url": "http://localhost:3000/browse/databases",
+  "geolocation": null,
+  "intent_template": "What is the Order ID of the order item with the lowest discount in the Order Items table from {{database}}?",
+  "instantiation_dict": {
+    "database": "my-db"
+  },
+  "intent": "What is the Order ID of the order item with the lowest discount in the Order Items table from my-db?",
+  "require_reset": false,
+  "difficulty": "easy",
+  "estimated_actions": 15,
+  "eval": {
+    "eval_types": ["string_match"],
+    "reference_answers": {
+      "must_include": ["113"]
+    },
+    "reference_url": "",
+    "program_html": [],
+    "string_note": "Agent must sort Order Items by discount ascending to find the minimum. The order item with the lowest discount has Order ID 113.",
+    "reference_answer_raw_annotation": "Order ID 113 has the lowest discount"
+  },
+  "intent_template_id": 1
+}

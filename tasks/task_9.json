@@ -1,0 +1,35 @@
+{
+  "sites": ["metabase"],
+  "task_id": 9,
+  "require_login": true,
+  "storage_state": "./.auth/metabase_admin_state.json",
+  "start_url": "http://localhost:3000",
+  "geolocation": null,
+  "intent_template": "Open the \"{{dashboard_name}}\" dashboard from the \"{{folder_path}}\" folder. Add a new text section with a heading titled \"{{section_title}}\" that documents key Python function implementations for using AgentLab, including: initializing a GenericAgent, setting up the browser environment, running the observation-action loop, and handling agent responses. Save the updated dashboard.",
+  "instantiation_dict": {
+    "dashboard_name": "AgentLab Documentation",
+    "folder_path": "Our Analytics",
+    "section_title": "Key Python Implementations"
+  },
+  "intent": "Open the \"AgentLab Documentation\" dashboard from the \"Our Analytics\" folder. Add a new text section with a heading titled \"Key Python Implementations\" that documents key Python function implementations for using AgentLab, including: initializing a GenericAgent, setting up the browser environment, running the observation-action loop, and handling agent responses. Save the updated dashboard.",
+  "require_reset": false,
+  "difficulty": "hard",
+  "estimated_actions": 35,
+  "eval": {
+    "eval_types": ["program_html"],
+    "reference_answers": {
+      "must_include": []
+    },
+    "reference_url": "dashboard",
+    "program_html": [
+      {
+        "url": "http://localhost:3000/api/dashboard",
+        "locator": "",
+        "required_contents": "Key Python"
+      }
+    ],
+    "string_note": "Agent should navigate to the AgentLab Documentation dashboard, enter edit mode, add a new text card with Python implementation details, and save.",
+    "reference_answer_raw_annotation": "AgentLab Documentation dashboard updated with new section containing Python implementation examples"
+  },
+  "intent_template_id": 9
+}
