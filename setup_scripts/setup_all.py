@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Combined setup script for Metabase.
-Runs all setup steps: first-time setup, add database, create SQL query, create dashboard.
+Runs all setup steps: first-time setup, add database, create SQL query, create dashboard,
+and AgentLab documentation.
 """
 
 import os
@@ -49,6 +50,7 @@ ORDER BY total_revenue DESC
 
 SIMPLE_QUESTION_NAME = "Orders by Status"
 DASHBOARD_NAME = "Sales Overview"
+DOCS_DASHBOARD_NAME = "AgentLab Documentation"
 
 
 class MetabaseClient:
@@ -109,6 +111,14 @@ class MetabaseClient:
             response.raise_for_status()
             self.token = response.json().get("id")
             return self.token
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 403:
+                # 403 means setup is already complete, try to authenticate instead
+                print("  Setup already complete, authenticating...")
+                if self.authenticate():
+                    return self.token
+            print(f"Failed to complete setup: {e}")
+            return None
         except httpx.HTTPError as e:
             print(f"Failed to complete setup: {e}")
             return None
@@ -237,8 +247,14 @@ class MetabaseClient:
 
 def step_first_time_setup(client: MetabaseClient) -> bool:
     """Step 1: Complete first-time Metabase setup if needed."""
-    print("Step 1/4: Checking first-time setup...")
+    print("Step 1/5: Checking first-time setup...")
 
+    # First, try to authenticate - if it works, setup is already complete
+    if client.authenticate():
+        print("  Metabase is already configured (authenticated successfully)")
+        return True
+
+    # Authentication failed, check if we need to do first-time setup
     if client.is_setup_complete():
         print("  Metabase is already configured")
         return True
@@ -260,7 +276,7 @@ def step_first_time_setup(client: MetabaseClient) -> bool:
 
 def step_add_database(client: MetabaseClient) -> int:
     """Step 2: Add database if not exists."""
-    print("Step 2/4: Adding database...")
+    print("Step 2/5: Adding database...")
 
     db_id = client.get_database_id(DATABASE_NAME)
     if db_id:
@@ -274,7 +290,7 @@ def step_add_database(client: MetabaseClient) -> int:
 
 def step_add_sql_query(client: MetabaseClient, database_id: int) -> int:
     """Step 3: Add SQL query if not exists."""
-    print("Step 3/4: Creating SQL query...")
+    print("Step 3/5: Creating SQL query...")
 
     card_id = client.get_card_id(SQL_QUERY_NAME)
     if card_id:
@@ -307,7 +323,7 @@ def step_add_dashboard(
     client: MetabaseClient, database_id: int, sql_card_id: int
 ) -> int:
     """Step 4: Add dashboard with questions."""
-    print("Step 4/4: Creating dashboard...")
+    print("Step 4/5: Creating Sales dashboard...")
 
     # Check if dashboard exists
     dashboard_id = client.get_dashboard_id(DASHBOARD_NAME)
@@ -396,6 +412,150 @@ def step_add_dashboard(
     return dashboard_id
 
 
+def step_add_documentation(client: MetabaseClient) -> int:
+    """Step 5: Add AgentLab documentation dashboard."""
+    print("Step 5/5: Creating AgentLab documentation...")
+
+    # Check if dashboard exists
+    dashboard_id = client.get_dashboard_id(DOCS_DASHBOARD_NAME)
+    if dashboard_id:
+        print(f"  Dashboard '{DOCS_DASHBOARD_NAME}' already exists (ID: {dashboard_id})")
+        return dashboard_id
+
+    # Create dashboard
+    dashboard_id = client.create_dashboard({
+        "name": DOCS_DASHBOARD_NAME,
+        "description": "Documentation for AgentLab browser automation framework",
+    })
+    print(f"  Created dashboard '{DOCS_DASHBOARD_NAME}' with ID: {dashboard_id}")
+
+    # Documentation sections
+    doc_sections = [
+        {"title": "AgentLab Documentation", "type": "heading", "row": 0, "col": 0, "size_x": 24, "size_y": 1},
+        {
+            "type": "text", "row": 1, "col": 0, "size_x": 12, "size_y": 6,
+            "content": """## What is AgentLab?
+
+**AgentLab** is a framework for building autonomous browser agents.
+
+### Key Features
+- **GenericAgent**: Flexible agent class for observations → actions
+- **BrowserGym**: OpenAI Gym interface for browsers
+- **Multi-LLM**: Works with Gemini, OpenAI, Claude via LiteLLM
+- **Vision**: Understands screenshots and visual elements
+
+### Use Cases
+- Automated web testing
+- Data extraction and entry
+- Workflow automation
+- Browser-based task completion""",
+        },
+        {
+            "type": "text", "row": 1, "col": 12, "size_x": 12, "size_y": 6,
+            "content": """## How It Works
+
+AgentLab follows an **observation-action loop**:
+
+```
+1. Environment → Observation
+2. Agent receives Observation
+3. Agent decides Action
+4. Environment executes Action
+5. Repeat until done
+```
+
+### Observation (what agent sees)
+- Screenshot, URL, DOM tree, page metadata
+
+### Action (what agent does)
+- click, type, scroll, goto, press key""",
+        },
+        {
+            "type": "text", "row": 7, "col": 0, "size_x": 12, "size_y": 6,
+            "content": """## Quick Integration
+
+**1. Install**
+```bash
+pip install agentlab browsergym playwright
+playwright install chromium
+```
+
+**2. Set API Key**
+```bash
+export GEMINI_API_KEY=your-key
+```
+
+**3. Create Agent**
+```python
+from agentlab.agents import GenericAgent
+agent = GenericAgent(model="gemini/gemini-2.0-flash")
+```
+
+**4. Run Loop**
+```python
+obs = env.reset(start_url="http://...")
+while not done:
+    action = agent.get_action(obs)
+    obs, reward, done, info = env.step(action)
+```""",
+        },
+        {
+            "type": "text", "row": 7, "col": 12, "size_x": 12, "size_y": 6,
+            "content": """## Supported LLM Providers
+
+| Provider | Models | Env Variable |
+|----------|--------|--------------|
+| **Gemini** | gemini-2.0-flash | `GEMINI_API_KEY` |
+| **OpenAI** | gpt-4o, gpt-4o-mini | `OPENAI_API_KEY` |
+| **Anthropic** | claude-3.5-sonnet | `ANTHROPIC_API_KEY` |
+| **OpenRouter** | Any model | `OPENROUTER_API_KEY` |
+
+### Best Practices
+- ✅ Use vision-enabled models (Gemini, GPT-4o)
+- ✅ Save screenshots for debugging
+- ✅ Set max_steps limits
+- ✅ Run headed mode when debugging
+- ❌ Don't skip artifact logging""",
+        },
+    ]
+
+    # Build dashcards
+    dashcards = []
+    for i, section in enumerate(doc_sections):
+        if section["type"] == "heading":
+            dashcard = {
+                "id": -(i + 1),
+                "card_id": None,
+                "row": section["row"],
+                "col": section["col"],
+                "size_x": section["size_x"],
+                "size_y": section["size_y"],
+                "visualization_settings": {
+                    "virtual_card": {"name": None, "display": "heading", "visualization_settings": {}, "dataset_query": {}, "archived": False},
+                    "text": section["title"],
+                },
+            }
+        else:
+            dashcard = {
+                "id": -(i + 1),
+                "card_id": None,
+                "row": section["row"],
+                "col": section["col"],
+                "size_x": section["size_x"],
+                "size_y": section["size_y"],
+                "visualization_settings": {
+                    "virtual_card": {"name": None, "display": "text", "visualization_settings": {}, "dataset_query": {}, "archived": False},
+                    "text": section["content"],
+                },
+            }
+        dashcards.append(dashcard)
+
+    client.update_dashboard(dashboard_id, {"dashcards": dashcards})
+    print(f"  Added {len(dashcards)} documentation sections")
+
+    return dashboard_id
+
+
 def wait_for_metabase(url: str, timeout: int = 120) -> bool:
     """Wait for Metabase to be ready."""
     print(f"Waiting for Metabase at {url}...")
@@ -430,14 +590,14 @@ def main():
         # Step 1: First-time setup (creates admin user if needed)
         if not step_first_time_setup(client):
             sys.exit(1)
-        print("")
 
-        # Authenticate (if not already authenticated via setup)
+        # Ensure we're authenticated (should already be from step 1)
         if not client.token:
             if not client.authenticate():
                 print("Could not authenticate with Metabase.")
                 sys.exit(1)
-        print("Authenticated successfully.\n")
+            print("Authenticated successfully.")
+        print("")
 
         database_id = step_add_database(client)
         print("")
@@ -446,6 +606,9 @@ def main():
         print("")
 
         dashboard_id = step_add_dashboard(client, database_id, sql_card_id)
+        print("")
+
+        docs_dashboard_id = step_add_documentation(client)
         print("")
 
     except httpx.HTTPStatusError as e:
@@ -459,7 +622,8 @@ def main():
     print("=" * 50)
     print("Setup Complete!")
     print("=" * 50)
-    print(f"Dashboard: {METABASE_URL}/dashboard/{dashboard_id}")
+    print(f"Sales Dashboard: {METABASE_URL}/dashboard/{dashboard_id}")
+    print(f"AgentLab Docs:   {METABASE_URL}/dashboard/{docs_dashboard_id}")
 
 
 if __name__ == "__main__":
