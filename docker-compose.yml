@@ -38,15 +38,16 @@ services:
       timeout: 5s
       retries: 5
 
-  sample-db:
+  my-db:
     image: postgres:15
-    container_name: metabase-sample-data
+    container_name: metabase-my-data
     environment:
       POSTGRES_USER: sample
       POSTGRES_PASSWORD: sample
       POSTGRES_DB: sample_data
     volumes:
-      - sample_data:/var/lib/postgresql/data
+      - ./seed.sql:/docker-entrypoint-initdb.d/seed.sql
+      - my_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sample"]
       interval: 10s
@@ -58,4 +59,4 @@ services:
 volumes:
   metabase_data:
   postgres_data:
-  sample_data:
+  my_data:
