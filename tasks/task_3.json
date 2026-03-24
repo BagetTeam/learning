@@ -13,7 +13,7 @@
   "intent": "Create a new timeline event with the name \"test\" that is scheduled for one week from today under the my analytics folder.",
   "require_reset": false,
   "difficulty": "easy",
-  "estimated_actions": 18,
+  "estimated_actions": 10,
   "eval": {
     "eval_types": ["program_html"],
     "reference_answers": {

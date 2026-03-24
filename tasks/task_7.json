@@ -15,7 +15,7 @@
   "intent": "Navigate to the \"E-commerce Insights\" dashboard located in the \"My Analytics/Examples\" folder. Apply a date filter to show data from the previous 7 days. Then export the dashboard as a PDF file.",
   "require_reset": false,
   "difficulty": "medium",
-  "estimated_actions": 22,
+  "estimated_actions": 20,
   "eval": {
     "eval_types": ["file_download"],
     "reference_answers": {

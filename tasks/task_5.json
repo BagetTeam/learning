@@ -16,7 +16,7 @@
   "intent": "Create a new question using the Order Items table from the my-db database that summarizes the count of order items grouped by unit price. Display the visualization as a bar chart. Save the question as \"Order Items by Unit Price\".",
   "require_reset": true,
   "difficulty": "medium",
-  "estimated_actions": 25,
+  "estimated_actions": 20,
   "eval": {
     "eval_types": ["url_match", "program_html"],
     "reference_answers": {
