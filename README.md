@@ -1,148 +1,309 @@
-# Metabase Browser Agent
+# Metabase Local Environment
 
-A Python-based browser agent that automates tasks inside a local Metabase instance using Playwright for browser control and AgentLab's `GenericAgent` for decision-making.
+A local Metabase environment with sample e-commerce data, automated setup scripts, and optional browser agent capabilities.
 
-## Features
+## Overview
 
-- Autonomous browser operation against a local Metabase instance
-- Playwright-based browser automation (headless by default)
+This project provides:
+- A Docker-based Metabase instance with PostgreSQL backend
+- Sample e-commerce database with customers, products, orders, and reviews
+- Automated setup scripts to configure Metabase with databases, questions, and dashboards
+
+## Prerequisites
+
+- **Docker** and **Docker Compose** installed
+- **Python 3.11+** installed
+
+## Quick Start
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/YOUR-USERNAME/webarena-pro.git
+cd webarena-pro
+```
+
+### 2. Set Up Python Environment (Recommended)
+
+Using a virtual environment is recommended to isolate dependencies:
+
+```bash
+# Create virtual environment
+python -m venv venv
+
+# Activate it
+source venv/bin/activate  # On macOS/Linux
+# or
+venv\Scripts\activate     # On Windows
+
+# Install dependencies
+pip install -e .
+```
+
+Alternatively, install dependencies globally:
+
+```bash
+pip install -e .
+```
+
+### 3. Configure Environment Variables
+
+Copy the example environment file:
+
+```bash
+cp .env.example .env
+```
+
+The default values should work out of the box:
+
+```bash
+METABASE_URL=http://localhost:3000
+METABASE_USERNAME=admin@admin.com
+METABASE_PASSWORD=apassword123
+```
+
+### 4. Start Docker Containers
+
+Start Metabase and the sample database:
+
+```bash
+docker-compose up -d
+```
+
+This starts three containers:
+- **metabase** - Metabase server on port 3000
+- **postgres** - Metabase's internal database
+- **my-db** - Sample e-commerce database on port 5433
+
+Wait for Metabase to be ready (first startup takes 1-2 minutes):
+
+```bash
+# Check container status
+docker-compose ps
+
+# View Metabase logs
+docker-compose logs -f metabase
+```
+
+Metabase is ready when you see: `Metabase Initialization COMPLETE`
+
+### 5. Run the Setup Script
+
+Run the automated setup to configure Metabase:
+
+```bash
+# Option 1: Single Python script (recommended)
+python setup_scripts/setup_all.py
+
+# Option 2: Shell script
+./setup.sh
+```
+
+The setup script will:
+1. **Create admin user** - Complete first-time Metabase setup
+2. **Add database** - Connect the sample e-commerce database
+3. **Create SQL query** - "Revenue by Category" analysis
+4. **Create dashboard** - "Sales Overview" with charts
+
+Example output:
+
+```
+==================================================
+Metabase Setup
+==================================================
+URL: http://localhost:3000
+Waiting for Metabase at http://localhost:3000...
+Metabase is ready.
+
+Step 1/4: Checking first-time setup...
+  Creating admin user: admin@admin.com
+  First-time setup completed successfully
+
+Authenticated successfully.
+
+Step 2/4: Adding database...
+  Created database 'my-db' with ID: 2
+
+Step 3/4: Creating SQL query...
+  Created SQL question 'Revenue by Category' with ID: 1
+
+Step 4/4: Creating dashboard...
+  Created question 'Orders by Status' with ID: 2
+  Created dashboard 'Sales Overview' with ID: 1
+  Added header and questions to dashboard
+
+==================================================
+Setup Complete!
+==================================================
+Dashboard: http://localhost:3000/dashboard/1
+```
+
+### 6. Access Metabase
+
+Open http://localhost:3000 and log in with:
+- **Email:** `admin@admin.com`
+- **Password:** `apassword123`
+
+## Sample Data
+
+The sample database (`my-db`) contains e-commerce data:
+
+| Table | Description |
+|-------|-------------|
+| `people` | 30 customers with name, email, location |
+| `products` | 30 products with category, vendor, price, rating |
+| `orders` | 200 orders with status (pending, paid, shipped, completed, returned) |
+| `order_items` | Order line items with quantity, price, discount |
+| `reviews` | 80 product reviews with ratings |
+| `order_summary` | View joining orders with customer and item data |
+
+## Setup Scripts
+
+Individual scripts are available in `setup_scripts/`:
+
+| Script | Purpose |
+|--------|---------|
+| `setup_all.py` | All-in-one setup (recommended) |
+| `setup_login.py` | First-time Metabase setup only |
+| `add_database.py` | Add database connection only |
+| `add_sql_query.py` | Create SQL question only |
+| `add_dashboard.py` | Create dashboard only |
+
+Run individual scripts:
+
+```bash
+python setup_scripts/setup_login.py
+python setup_scripts/add_database.py
+python setup_scripts/add_sql_query.py
+python setup_scripts/add_dashboard.py
+```
+
+All scripts are **idempotent** - they skip resources that already exist.
+
+## Docker Commands
+
+```bash
+# Start containers
+docker-compose up -d
+
+# Stop containers
+docker-compose down
+
+# Stop and remove volumes (reset everything)
+docker-compose down -v
+
+# View logs
+docker-compose logs -f metabase
+
+# Restart Metabase
+docker-compose restart metabase
+```
+
+## Troubleshooting
+
+### Metabase not starting
+```bash
+# Check container status
+docker-compose ps
+
+# Check logs for errors
+docker-compose logs metabase
+```
+
+### Setup script fails to authenticate
+- Ensure Metabase is fully initialized (check logs for "Initialization COMPLETE")
+- Verify credentials in `.env` match what you expect
+- If Metabase was already set up with different credentials, reset with `docker-compose down -v`
+
+### Database not syncing
+After adding the database, Metabase needs to sync metadata. This happens automatically but can take a minute. You can trigger a manual sync in Metabase UI: Admin > Databases > my-db > Sync database schema.
+
+### Port conflicts
+If port 3000 or 5433 is in use, edit `docker-compose.yml` to change the port mappings.
+
+---
+
+## Extra: Browser Agent (Experimental)
+
+This project includes experimental support for a browser agent that can automate Metabase tasks using AI.
+
+### Features
+
+- Autonomous browser operation using Playwright
 - AgentLab GenericAgent integration for action decisions
 - Multi-provider LLM support via LiteLLM (Gemini, OpenAI, Azure, OpenRouter)
 - Vision-enabled agents with screenshot understanding
 - Structured task definitions in YAML format
 - Comprehensive artifact logging (screenshots, traces, summaries)
 
-## Quick Start
-
-### Prerequisites
-
-- Python 3.11+
-- Docker and Docker Compose
-- LLM API key (Gemini, OpenAI, etc.)
-
-### Installation
-
-1. Clone the repository and install dependencies:
+### Additional Setup
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/webarena-pro.git
-cd webarena-pro
-pip install -e .
+# Install Playwright browser
 playwright install chromium
-```
 
-2. Copy the environment file and configure your settings:
-
-```bash
-cp .env.example .env
-```
-
-3. Set your API key (choose one):
-
-```bash
-# For Gemini (recommended):
+# Set your LLM API key
 export GEMINI_API_KEY=your-gemini-api-key
-
-# For OpenAI:
+# or
 export OPENAI_API_KEY=your-openai-api-key
-
-# For OpenRouter:
-export OPENROUTER_API_KEY=your-openrouter-api-key
 ```
 
-4. Start the local Metabase environment:
+### Running the Agent
 
 ```bash
-docker-compose up -d
-```
-
-5. Wait for Metabase to initialize (first run takes a few minutes), then set up a test user at http://localhost:3000.
-
-6. Verify your setup:
-
-```bash
-metabase-agent check
-```
-
-### Running a Task
-
-Run a sample task with Gemini (default):
-
-```bash
+# Run a sample task
 metabase-agent run --task filter_and_save_question
-```
 
-Run with a specific model:
-
-```bash
+# Run with a specific model
 metabase-agent run --task filter_and_save_question --model gemini/gemini-2.0-flash
-metabase-agent run --task filter_and_save_question --model gpt-4o
-```
 
-Run in demo mode (headed browser for debugging):
-
-```bash
+# Run in demo mode (visible browser)
 metabase-agent run --task filter_and_save_question --demo
-```
 
-List available tasks:
-
-```bash
+# List available tasks
 metabase-agent list-tasks
 ```
 
 ### Supported Models
 
-The agent uses LiteLLM for multi-provider support:
-
 | Provider | Model Examples | API Key Variable |
 |----------|---------------|------------------|
 | Gemini | `gemini/gemini-2.0-flash`, `gemini/gemini-1.5-pro` | `GEMINI_API_KEY` |
-| OpenAI | `gpt-4o`, `gpt-4o-mini`, `gpt-4` | `OPENAI_API_KEY` |
+| OpenAI | `gpt-4o`, `gpt-4o-mini` | `OPENAI_API_KEY` |
 | Azure | `azure/your-deployment` | `AZURE_OPENAI_API_KEY` |
 | OpenRouter | `openrouter/anthropic/claude-3.5-sonnet` | `OPENROUTER_API_KEY` |
 
 ### Project Structure
 
 ```
-metabase-agent/
-  pyproject.toml          # Package configuration
-  docker-compose.yml      # Local Metabase environment
-  .env.example            # Environment variables template
-  src/
-    metabase_agent/
-      cli.py              # Command-line interface
-      config.py           # Configuration loading
-      runner.py           # Main task orchestration
-      agent/              # AgentLab adapter
-      env/                # Browser environment
-      tasks/              # Task definitions
-      evaluation/         # Success criteria checking
-      metabase/           # Metabase helpers
-      logging/            # Artifact management
+webarena-pro/
+├── docker-compose.yml      # Docker environment
+├── seed.sql                # Sample data
+├── setup.sh                # Shell setup script
+├── setup_scripts/          # Python setup scripts
+│   ├── setup_all.py        # All-in-one setup
+│   ├── setup_login.py      # First-time setup
+│   ├── add_database.py     # Add database
+│   ├── add_sql_query.py    # Create SQL question
+│   └── add_dashboard.py    # Create dashboard
+├── src/
+│   └── metabase_agent/     # Browser agent (experimental)
+│       ├── cli.py          # Command-line interface
+│       ├── config.py       # Configuration
+│       ├── runner.py       # Task orchestration
+│       ├── agent/          # AgentLab adapter
+│       ├── env/            # Browser environment
+│       ├── tasks/          # Task definitions
+│       └── evaluation/     # Success criteria
+└── pyproject.toml          # Package configuration
 ```
 
-## Development
-
-Install dev dependencies:
-
-```bash
-pip install -e ".[dev]"
-```
-
-Run tests:
-
-```bash
-pytest
-```
+---
 
 ## Contributing
 
-Since all contributors currently have **read-only access** to the main repository, all code contributions must follow the standard **Fork and Pull Request** workflow.
-
-1. Fork the repository to your GitHub account
-2. Clone your fork: `git clone https://github.com/YOUR-USERNAME/webarena-pro.git`
-3. Add upstream: `git remote add upstream https://github.com/McGill-NLP/webarena-pro.git`
-4. Create a branch: `git checkout -b feature/your-feature-name`
-5. Push and submit PR: `git push origin feature/your-feature-name`
-6. Stay synced: `git fetch upstream && git merge upstream/main`
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Commit your changes: `git commit -m "Add feature"`
+4. Push to your fork: `git push origin feature/your-feature`
+5. Open a Pull Request
