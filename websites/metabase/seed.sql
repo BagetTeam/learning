@@ -4,6 +4,9 @@
 -- Usage: psql -U sample -d sample_data -f seed.sql
 -- ============================================================
 
+-- Make generated data deterministic across fresh DB initializations.
+SELECT setseed(0.12345);
+
 -- ============================================================
 -- TABLES
 -- ============================================================
@@ -143,10 +146,11 @@ DECLARE
   disc    NUMERIC(10,2);
   statuses TEXT[] := ARRAY['pending','paid','shipped','completed','returned'];
   ts      TIMESTAMP;
+  base_ts TIMESTAMP := TIMESTAMP '2025-01-01 00:00:00';
 BEGIN
   FOR i IN 1..200 LOOP
     uid := (SELECT id FROM people  ORDER BY random() LIMIT 1);
-    ts  := now() - (random() * INTERVAL '365 days');
+    ts  := base_ts - (random() * INTERVAL '365 days');
 
     INSERT INTO orders (user_id, created_at, status)
     VALUES (uid, ts, statuses[1 + floor(random()*5)::INT])
@@ -186,7 +190,7 @@ SELECT
     'Returned it. Did not match the description.',
     'Solid build quality, very happy with it.'
   ])[1 + floor(random()*10)::INT],
-  now() - (random() * INTERVAL '365 days')
+  TIMESTAMP '2025-01-01 00:00:00' - (random() * INTERVAL '365 days')
 FROM generate_series(1, 80);
 
 -- ============================================================

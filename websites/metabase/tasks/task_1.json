@@ -16,7 +16,7 @@
   "eval": {
     "eval_types": ["string_match"],
     "reference_answers": {
-      "must_include": ["10"]
+      "must_include": ["87", "135"]
     },
     "reference_url": "",
     "program_html": [],
