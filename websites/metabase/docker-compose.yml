@@ -56,6 +56,17 @@ services:
     ports:
       - "5433:5432"
 
+  setup:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: metabase-setup
+    depends_on:
+      metabase:
+        condition: service_healthy
+    volumes:
+      - ./.auth:/app/.auth 
+
 volumes:
   metabase_data:
   postgres_data:
