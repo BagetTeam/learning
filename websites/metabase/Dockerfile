@@ -1,12 +1,8 @@
-FROM python:3.12-slim
-
 WORKDIR /app
 
-# Copy the whole project (needed for pip install -e .)
-COPY . .
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install the package in editable mode
-RUN pip install --no-cache-dir -e .
+COPY setup_scripts/ setup_scripts/
 
-# Default command runs the setup script
 CMD ["python", "setup_scripts/setup_all.py"]
