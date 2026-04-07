@@ -61,11 +61,16 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: metabase-setup
+    environment:
+      # Inside the container, localhost is not Metabase — use the compose service name.
+      METABASE_URL: http://metabase:3000
     depends_on:
       metabase:
         condition: service_healthy
+      my-db:
+        condition: service_healthy
     volumes:
-      - ./.auth:/app/.auth 
+      - ./.auth:/app/.auth
 
 volumes:
   metabase_data:
