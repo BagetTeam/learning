@@ -7,54 +7,32 @@ A local Metabase environment with sample e-commerce data, automated setup script
 This project provides:
 - A Docker-based Metabase instance with PostgreSQL backend
 - Sample e-commerce database with customers, products, orders, and reviews
-- Automated setup scripts to configure Metabase with databases, questions, and dashboards
+- A **setup** service (built from **`Dockerfile`** + **`requirements.txt`**) that runs **`setup_scripts/setup_all.py`** once when you **`docker compose up`**
+- The same scripts can be run on the host with **`pip install -r requirements.txt`**
 
 ## Prerequisites
 
-- **Docker** and **Docker Compose** installed
-- **Python 3.11+** installed
+- **Docker** with **Compose** (`docker compose` v2 plugin or standalone `docker-compose`)
+- **Python 3.11+** only if you run `setup_scripts/` on the host or use the **browser agent** (`metabase-agent`)
 
 ## Quick Start
 
-### 1. Clone the Repository
+### 1. Clone the repository and open this site
 
 ```bash
 git clone https://github.com/YOUR-USERNAME/webarena-pro.git
-cd webarena-pro
+cd webarena-pro/websites/metabase
 ```
 
-### 2. Set Up Python Environment (Recommended)
+### 2. (Optional) Configure environment variables
 
-Using a virtual environment is recommended to isolate dependencies:
-
-```bash
-# Create virtual environment
-python -m venv venv
-
-# Activate it
-source venv/bin/activate  # On macOS/Linux
-# or
-venv\Scripts\activate     # On Windows
-
-# Install dependencies
-pip install -e .
-```
-
-Alternatively, install dependencies globally:
-
-```bash
-pip install -e .
-```
-
-### 3. Configure Environment Variables
-
-Copy the example environment file:
+For **running setup on your machine** (not in Docker), copy the example env file:
 
 ```bash
 cp .env.example .env
 ```
 
-The default values should work out of the box:
+Defaults:
 
 ```bash
 METABASE_URL=http://localhost:3000
@@ -62,52 +40,58 @@ METABASE_USERNAME=admin@admin.com
 METABASE_PASSWORD=apassword123
 ```
 
-### 4. Start Docker Containers
+The **`setup` service in Compose** does not use `localhost` for Metabase (that would point at the wrong container). `docker-compose.yml` sets `METABASE_URL=http://metabase:3000` for that service. You still open Metabase in the browser at **http://localhost:3000**.
 
-Start Metabase and the sample database:
-
-```bash
-docker-compose up -d
-```
-
-This starts three containers:
-- **metabase** - Metabase server on port 3000
-- **postgres** - Metabase's internal database
-- **my-db** - Sample e-commerce database on port 5433
-
-Wait for Metabase to be ready (first startup takes 1-2 minutes):
+### 3. Start Docker and run automated setup
 
 ```bash
-# Check container status
-docker-compose ps
-
-# View Metabase logs
-docker-compose logs -f metabase
+docker compose up -d
 ```
 
-Metabase is ready when you see: `Metabase Initialization COMPLETE`
+This starts **four** services:
 
-### 5. Run the Setup Script
+| Service | Role |
+|---------|------|
+| **metabase** | Metabase on port **3000** |
+| **postgres** | Metabase application database |
+| **my-db** | Sample e-commerce data (host port **5433**) |
+| **setup** | One-shot image: installs deps from **`requirements.txt`**, runs **`setup_scripts/setup_all.py`**, then **exits** |
 
-Run the automated setup to configure Metabase:
+The **setup** container waits until Metabase and `my-db` are healthy, then configures Metabase (admin user, `my-db` connection, questions, dashboards, `.auth/metabase_admin_state.json`). It is **not** a long-running service; `docker compose ps` will show it as exited after success.
+
+Wait for Metabase on first boot (often 1–2 minutes):
 
 ```bash
-# Option 1: Single Python script (recommended)
-python setup_scripts/setup_all.py
-
-# Option 2: Shell script
-./setup.sh
+docker compose ps
+docker compose logs -f metabase
 ```
 
-The setup script will:
-1. **Create admin user** - Complete first-time Metabase setup
-2. **Add database** - Connect the sample e-commerce database
-3. **Create SQL query** - "Revenue by Category" analysis
-4. **Create Sales dashboard** - "Sales Overview" with charts
-5. **Create AgentLab documentation** - Interactive docs dashboard explaining AgentLab
-6. **Save auth state** - Create `.auth/metabase_admin_state.json` for browser agent tasks
+Metabase is ready when logs show something like `Metabase Initialization COMPLETE`.
 
-Example output:
+Confirm setup finished:
+
+```bash
+docker compose logs setup
+```
+
+If you need to **re-run** provisioning (e.g. after wiping volumes):
+
+```bash
+docker compose run --rm setup
+```
+
+**What `setup_all.py` does** (Docker or host):
+
+1. **Create admin user** — complete first-time Metabase setup  
+2. **Add database** — connect the sample e-commerce database  
+3. **Create SQL query** — “Revenue by Category”  
+4. **Create Sales dashboard** — “Sales Overview” with charts  
+5. **Create AgentLab documentation** — docs dashboard  
+6. **Save auth state** — write `.auth/metabase_admin_state.json` for browser agent tasks  
+
+When the **setup container** runs, log lines may show `METABASE_URL` as `http://metabase:3000`. Open dashboards in your browser at **http://localhost:3000** (same paths and IDs as in the log).
+
+Example output (host run; URL line matches your `METABASE_URL`):
 
 ```
 ==================================================
@@ -149,6 +133,27 @@ AgentLab Docs:   http://localhost:3000/dashboard/2
 Auth State:      ./.auth/metabase_admin_state.json
 ```
 
+### 4. (Alternative) Run setup on the host
+
+If you prefer not to use the setup container, install only what the scripts need:
+
+```bash
+python -m venv venv
+source venv/bin/activate   # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python setup_scripts/setup_all.py
+```
+
+Or use **`./setup.sh`** if present.
+
+### 5. Python for the browser agent only
+
+The **`metabase_agent`** CLI and its stack are declared in **`pyproject.toml`**. They are **not** installed by the setup Docker image. For agent work, use a venv and editable install:
+
+```bash
+pip install -e .
+```
+
 ### 6. Access Metabase
 
 Open http://localhost:3000 and log in with:
@@ -182,7 +187,7 @@ Individual scripts are available in `setup_scripts/`:
 | `add_documentation.py` | Create AgentLab documentation dashboard |
 | `save_auth_state.py` | Save Playwright auth state for browser agent |
 
-Run individual scripts:
+Run individual scripts (from the host, after `pip install -r requirements.txt` and with `METABASE_URL=http://localhost:3000` in `.env` if Metabase is exposed on port 3000):
 
 ```bash
 python setup_scripts/setup_login.py
@@ -193,42 +198,48 @@ python setup_scripts/add_documentation.py
 python setup_scripts/save_auth_state.py
 ```
 
-All scripts are **idempotent** - they skip resources that already exist.
+All scripts are **idempotent** — they skip resources that already exist.
 
-## Docker Commands
+## Docker commands
 
 ```bash
-# Start containers
-docker-compose up -d
+# Start all services (setup runs once and exits)
+docker compose up -d
+
+# One-shot setup only (e.g. after reset)
+docker compose run --rm setup
 
 # Stop containers
-docker-compose down
+docker compose down
 
-# Stop and remove volumes (reset everything)
-docker-compose down -v
+# Stop and remove volumes (full reset)
+docker compose down -v
 
-# View logs
-docker-compose logs -f metabase
+# Logs
+docker compose logs -f metabase
+docker compose logs setup
 
 # Restart Metabase
-docker-compose restart metabase
+docker compose restart metabase
 ```
 
 ## Troubleshooting
 
 ### Metabase not starting
 ```bash
-# Check container status
-docker-compose ps
-
-# Check logs for errors
-docker-compose logs metabase
+docker compose ps
+docker compose logs metabase
 ```
 
-### Setup script fails to authenticate
-- Ensure Metabase is fully initialized (check logs for "Initialization COMPLETE")
-- Verify credentials in `.env` match what you expect
-- If Metabase was already set up with different credentials, reset with `docker-compose down -v`
+### Setup container exits immediately or Metabase looks empty
+- Check **`docker compose logs setup`**. Failures often mean Metabase was not reachable at the URL the script uses.
+- In Compose, the setup service must use **`METABASE_URL=http://metabase:3000`** (already set in `docker-compose.yml`). Do not change it to `localhost` inside the container.
+- Re-run provisioning: **`docker compose run --rm setup`**.
+
+### Setup script fails to authenticate (host or container)
+- Ensure Metabase is fully initialized (logs: “Initialization COMPLETE” or similar).
+- On the **host**, use **`METABASE_URL=http://localhost:3000`** in `.env`.
+- If Metabase was already set up with different credentials, reset with **`docker compose down -v`**.
 
 ### Database not syncing
 After adding the database, Metabase needs to sync metadata. This happens automatically but can take a minute. You can trigger a manual sync in Metabase UI: Admin > Databases > my-db > Sync database schema.
@@ -288,13 +299,17 @@ metabase-agent list-tasks
 | Azure | `azure/your-deployment` | `AZURE_OPENAI_API_KEY` |
 | OpenRouter | `openrouter/anthropic/claude-3.5-sonnet` | `OPENROUTER_API_KEY` |
 
-### Project Structure
+### Project structure
+
+Paths are relative to **`websites/metabase/`**:
 
 ```
-webarena-pro/
-├── docker-compose.yml      # Docker environment
-├── seed.sql                # Sample data
-├── setup.sh                # Shell setup script
+websites/metabase/
+├── Dockerfile              # Setup image: pip install -r requirements.txt, run setup_all.py
+├── docker-compose.yml      # metabase, postgres, my-db, setup
+├── requirements.txt        # Dependencies for setup_scripts/ (httpx, python-dotenv)
+├── seed.sql                # Sample data for my-db
+├── setup.sh                # Optional shell helper
 ├── setup_scripts/          # Python setup scripts
 │   ├── setup_all.py        # All-in-one setup
 │   ├── setup_login.py      # First-time setup
@@ -303,7 +318,7 @@ webarena-pro/
 │   ├── add_dashboard.py    # Create Sales dashboard
 │   ├── add_documentation.py # Create AgentLab docs dashboard
 │   └── save_auth_state.py  # Save Playwright auth state
-├── .auth/                  # Auth state for browser agent (generated)
+├── .auth/                  # Auth state for browser agent (generated; mounted in setup container)
 │   └── metabase_admin_state.json
 ├── tasks/                  # Browser agent task definitions
 │   └── task_*.json
@@ -316,7 +331,7 @@ webarena-pro/
 │       ├── env/            # Browser environment
 │       ├── tasks/          # Task definitions
 │       └── evaluation/     # Success criteria
-└── pyproject.toml          # Package configuration
+└── pyproject.toml          # metabase-agent package (pip install -e .)
 ```
 
 ---
