@@ -1,33 +1,35 @@
-class Renderer {
-    public:
-        virtual void drawText(std::string text, int x, int y) = 0;
-        virtual void clearScreen() = 0;
-        virtual void drawCursor(int x, int y, int height) = 0;
-        virtual void drawSelection(int x, int y, int width, int height) = 0;
-        ~Renderer() = default;
-    };
-}
+#include <SDL.h>
 
-class SDL2Renderer : public Renderer {
-    public:
-        SDL2Renderer(SDL_Window* window);
-        void drawText(std::string text, int x, int y) override;
-        void clearScreen() override;
-        void drawCursor(int x, int y, int height) override;
-        void drawSelection(int x, int y, int width, int height) override;
-    private:
-        SDL_Window* window;
-};
+int main() {
+    SDL_Init(SDL_INIT_VIDEO);
 
-SDL2Renderer::SDL2Renderer(SDL_Window* window) {
-    this->window = window;
-}
+    SDL_Window* window = SDL_CreateWindow(
+        "My First Window",
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        800, 600,
+        0
+    );
 
-void SDL2Renderer::drawText(std::string text, int x, int y) {
-    SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), color);
-    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_Rect rect = {x, y, surface->w, surface->h};
-    SDL_RenderCopy(renderer, texture, NULL, &rect);
-    SDL_DestroyTexture(texture);
-    SDL_FreeSurface(surface);
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+    bool running = true;
+    SDL_Event event;
+
+    while (running) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                running = false;
+            }
+        }
+
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // black
+        SDL_RenderClear(renderer);
+
+        SDL_RenderPresent(renderer);
+    }
+
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
 }
