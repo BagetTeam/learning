@@ -1,0 +1,39 @@
+{
+  "sites": ["metabase"],
+  "task_id": 3,
+  "require_login": true,
+  "storage_state": "./.auth/metabase_admin_state.json",
+  "start_url": "http://localhost:3000",
+  "geolocation": null,
+  "intent_template": "Create a new timeline event with the name \"{{event_name}}\" that is scheduled for {{time_offset}} from today.",
+  "instantiation_dict": {
+    "event_name": "test",
+    "time_offset": "one week"
+  },
+  "intent": "Create a new timeline event with the name \"test\" that is scheduled for one week from today under the my analytics folder.",
+  "require_reset": false,
+  "difficulty": "easy",
+  "estimated_actions": 10,
+  "eval": {
+    "eval_types": ["program_html"],
+    "reference_answers": {
+      "must_include": []
+    },
+    "reference_url": "",
+    "program_html": [
+      {
+        "url": "http://localhost:3000/api/timeline?include=events",
+        "locator": "",
+        "required_contents": {
+          "must_include": [
+            "\"name\":\"test\" |OR| \"name\": \"test\"",
+            "\"timestamp\":"
+          ]
+        }
+      }
+    ],
+    "string_note": "Agent should navigate to timeline/events feature and create a new event named 'test' scheduled 7 days from now.",
+    "reference_answer_raw_annotation": "A timeline event named 'test' exists and is scheduled for next week"
+  },
+  "intent_template_id": 3
+}

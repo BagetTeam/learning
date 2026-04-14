@@ -1,0 +1,40 @@
+{
+  "sites": ["metabase"],
+  "task_id": 10,
+  "require_login": true,
+  "storage_state": "./.auth/metabase_admin_state.json",
+  "start_url": "http://localhost:3000",
+  "geolocation": null,
+  "intent_template": "Go to the \"{{dashboard_name}}\" dashboard, find the \"{{component_name}}\" component, and change its visualization from the current display type to a {{new_visualization}}. Save the changes.",
+  "instantiation_dict": {
+    "dashboard_name": "Sales Overview",
+    "component_name": "Orders by Status",
+    "new_visualization": "bar chart"
+  },
+  "intent": "Go to the \"Sales Overview\" dashboard, find the \"Orders by Status\" component, and change its visualization from the current display type to a bar chart. Save the changes.",
+  "require_reset": true,
+  "difficulty": "hard",
+  "estimated_actions": 30,
+  "eval": {
+    "eval_types": ["program_html"],
+    "reference_answers": {
+      "must_include": []
+    },
+    "reference_url": "dashboard",
+    "program_html": [
+      {
+        "url": "http://localhost:3000/api/card",
+        "locator": "",
+        "required_contents": {
+          "must_include": [
+            "Orders by Status",
+            "\"display\":\"bar\""
+          ]
+        }
+      }
+    ],
+    "string_note": "Agent should navigate to Sales Overview dashboard, enter edit mode, click on the Orders by Status card, change visualization type from pie to bar chart, and save the dashboard.",
+    "reference_answer_raw_annotation": "Orders by Status component on Sales Overview dashboard is now displayed as a bar chart"
+  },
+  "intent_template_id": 10
+}

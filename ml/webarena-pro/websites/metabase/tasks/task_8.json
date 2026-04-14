@@ -1,0 +1,43 @@
+{
+  "sites": ["metabase"],
+  "task_id": 8,
+  "require_login": true,
+  "storage_state": "./.auth/metabase_admin_state.json",
+  "start_url": "http://localhost:3000",
+  "geolocation": null,
+  "intent_template": "Create a new dashboard named \"{{dashboard_name}}\" with the following components: 1) A title text element at the top that says \"{{title_text}}\", 2) The \"{{component1}}\" question placed on the left side below the title, 3) The \"{{component2}}\" question placed on the right side next to the first component. The layout should match the original \"{{reference_dashboard}}\" dashboard.",
+  "instantiation_dict": {
+    "dashboard_name": "Sales Overview Dashboard 2",
+    "title_text": "Sales Overview Dashboard 2",
+    "component1": "Orders by Status",
+    "component2": "Revenue by Category",
+    "reference_dashboard": "Sales Overview Dashboard"
+  },
+  "intent": "Create a new dashboard named \"Sales Overview Dashboard 2\" under Our Analytics folder with the following components: 1) A title text element at the top that says \"Sales Overview Dashboard 2\", 2) The \"Orders by Status\" question placed on the left side below the title, 3) The \"Revenue by Category\" question placed on the right side next to the first component. The layout should match the original \"Sales Overview Dashboard\" dashboard.",
+  "require_reset": true,
+  "difficulty": "hard",
+  "estimated_actions": 35,
+  "eval": {
+    "eval_types": ["program_html"],
+    "reference_answers": {
+      "must_include": []
+    },
+    "reference_url": "dashboard",
+    "program_html": [
+      {
+        "url": "http://localhost:3000/api/dashboard",
+        "locator": "",
+        "required_contents": {
+          "must_include": [
+            "\"name\":\"Sales Overview Dashboard 2\" |OR| \"name\": \"Sales Overview Dashboard 2\"",
+            "\"archived\":false",
+            "\"view_count\":"
+          ]
+        }
+      }
+    ],
+    "string_note": "Agent should create a new dashboard with a heading and two question cards side by side, matching the layout of Sales Overview Dashboard.",
+    "reference_answer_raw_annotation": "Dashboard 'Sales Overview Dashboard 2' exists with title and two components (Orders by Status, Revenue by Category) in matching layout"
+  },
+  "intent_template_id": 8
+}

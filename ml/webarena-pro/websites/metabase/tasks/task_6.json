@@ -1,0 +1,43 @@
+{
+  "sites": ["metabase"],
+  "task_id": 6,
+  "require_login": true,
+  "storage_state": "./.auth/metabase_admin_state.json",
+  "start_url": "http://localhost:3000",
+  "geolocation": null,
+  "intent_template": "Create a SQL query using the {{database}} database that joins the {{table1}} and {{table2}} tables to display all columns from {{table1}} plus the {{additional_columns}} columns from {{table2}}. Join on {{join_condition}}. Save the question as \"{{question_name}}\".",
+  "instantiation_dict": {
+    "database": "my-db",
+    "table1": "order_items",
+    "table2": "orders",
+    "additional_columns": "created_at and status",
+    "join_condition": "orders.id = order_items.order_id",
+    "question_name": "Order Items with Order Details"
+  },
+  "intent": "Create a SQL query using the my-db database that joins the order_items and orders tables to display all columns from order_items plus the created_at and status columns from orders. Join on orders.id = order_items.order_id. Save the question as \"Order Items with Order Details\".",
+  "require_reset": true,
+  "difficulty": "medium",
+  "estimated_actions": 20,
+  "eval": {
+    "eval_types": ["url_match", "program_html"],
+    "reference_answers": {
+      "must_include": []
+    },
+    "reference_url": "question",
+    "program_html": [
+      {
+        "url": "http://localhost:3000/api/card",
+        "locator": "",
+        "required_contents": {
+          "must_include": [
+            "Order Items with Order Details",
+            "\"query_type\":\"native\" |OR| \"type\":\"native\""
+          ]
+        }
+      }
+    ],
+    "string_note": "Agent should write SQL: SELECT oi.*, o.created_at, o.status FROM order_items oi JOIN orders o ON o.id = oi.order_id",
+    "reference_answer_raw_annotation": "A saved SQL question named 'Order Items with Order Details' exists with JOIN query"
+  },
+  "intent_template_id": 6
+}
