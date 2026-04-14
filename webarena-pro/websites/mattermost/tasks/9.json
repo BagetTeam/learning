@@ -1,0 +1,32 @@
+{
+  "sites": ["mattermost"],
+  "task_id": 9,
+  "require_login": true,
+  "storage_state": "./.auth/mattermost_admin_state.json",
+  "start_url": "http://localhost:8065",
+  "geolocation": null,
+  "intent_template": "In the weekly marketing analytics report for {{week}} in the analytics channel, what was the demo page conversion rate (demo requests out of demo page views), and how does it compare to the benchmark?",
+  "instantiation_dict": {
+    "week": "March 3-9"
+  },
+  "intent": "In the weekly marketing analytics report for March 3-9 in the analytics channel, what was the demo page conversion rate (demo requests out of demo page views), and how does it compare to the benchmark?",
+  "require_reset": false,
+  "difficulty": "hard",
+  "estimated_actions": 27,
+  "eval": {
+    "eval_types": ["string_match"],
+    "reference_answers": {
+      "must_include": [
+        "312",
+        "3,200",
+        "9.75%",
+        "8%"
+      ]
+    },
+    "reference_url": "",
+    "program_html": [],
+    "string_note": "Ivy's analytics report in Marketing > analytics: 312 demo requests from 3,200 demo page views = 9.75% conversion rate. The benchmark is 8%, so it's above benchmark.",
+    "reference_answer_raw_annotation": "312 demo requests out of 3,200 demo page views = 9.75% conversion rate. This is above the 8% benchmark. Ivy noted the new demo page design is working well."
+  },
+  "intent_template_id": 9
+}

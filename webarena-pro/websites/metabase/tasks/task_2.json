@@ -1,0 +1,40 @@
+{
+  "sites": ["metabase"],
+  "task_id": 2,
+  "require_login": true,
+  "storage_state": "./.auth/metabase_admin_state.json",
+  "start_url": "http://localhost:3000",
+  "geolocation": null,
+  "intent_template": "Create a new question that shows all orders from the {{time_period}} using the Orders table from the {{database}} database. Save it as \"{{question_name}}\".",
+  "instantiation_dict": {
+    "time_period": "past week",
+    "database": "my-db",
+    "question_name": "Recent Orders - Last 7 Days"
+  },
+  "intent": "Create a new question that shows all orders from the last 7 days using the Orders table from the my-db database. Save it as \"Recent Orders - Last 7 Days\".",
+  "require_reset": true,
+  "difficulty": "easy",
+  "estimated_actions": 15,
+  "eval": {
+    "eval_types": ["url_match", "program_html"],
+    "reference_answers": {
+      "must_include": []
+    },
+    "reference_url": "question",
+    "program_html": [
+      {
+        "url": "http://localhost:3000/api/card",
+        "locator": "",
+        "required_contents": {
+          "must_include": [
+            "Recent Orders - Last 7 Days",
+            "\"query_type\":\"query\""
+          ]
+        }
+      }
+    ],
+    "string_note": "Agent should create a question filtering Orders by created_at within the last 7 days and save it.",
+    "reference_answer_raw_annotation": "A saved question named 'Recent Orders - Last 7 Days' exists in Metabase"
+  },
+  "intent_template_id": 2
+}

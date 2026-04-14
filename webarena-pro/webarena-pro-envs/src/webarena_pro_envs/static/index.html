@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebArena-Pro Environments</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --border: #1f2937;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --primary: #3b82f6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.8rem;
+    }
+    p {
+      margin: 0 0 20px;
+      color: var(--muted);
+    }
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    button {
+      border: 1px solid var(--border);
+      background: #111827;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    button:hover { border-color: #374151; }
+    button.primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .title {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+    .status {
+      font-size: 0.8rem;
+      border-radius: 999px;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .status.running {
+      color: #86efac;
+      border-color: #166534;
+      background: rgba(22, 101, 52, 0.25);
+    }
+    .status.error {
+      color: #fca5a5;
+      border-color: #7f1d1d;
+      background: rgba(127, 29, 29, 0.2);
+    }
+    .meta {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+      word-break: break-word;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .connect {
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      color: var(--text);
+      min-width: 78px;
+    }
+    .connect.active {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: var(--primary);
+    }
+    .connect.disabled {
+      pointer-events: none;
+      opacity: 0.5;
+    }
+    .hint {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 12px;
+    }
+    .error {
+      color: #fca5a5;
+      margin-bottom: 16px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>WebArena-Pro Websites</h1>
+    <p>Start, restart, stop, and open each environment from one page.</p>
+
+    <div class="toolbar">
+      <button id="refresh" class="primary">Refresh</button>
+    </div>
+
+    <div id="error" class="error"></div>
+    <section id="grid" class="grid"></section>
+    <div class="hint">Host ports are fixed in code for each website and cannot be overridden from the dashboard.</div>
+  </main>
+
+  <script>
+    const grid = document.getElementById('grid');
+    const errorEl = document.getElementById('error');
+    const refreshButton = document.getElementById('refresh');
+
+    function setError(message) {
+      if (!message) {
+        errorEl.style.display = 'none';
+        errorEl.textContent = '';
+        return;
+      }
+      errorEl.style.display = 'block';
+      errorEl.textContent = message;
+    }
+
+    function statusClass(environment) {
+      if (environment.status === 'error') return 'status error';
+      if (environment.running) return 'status running';
+      return 'status';
+    }
+
+    function render(environments) {
+      grid.innerHTML = '';
+
+      for (const environment of environments) {
+        const card = document.createElement('article');
+        card.className = 'card';
+
+        const connectClass = environment.url ? 'connect active' : 'connect disabled';
+        const connectHref = environment.url || '#';
+
+        card.innerHTML = `
+          <div class="header">
+            <h2 class="title">${environment.name}</h2>
+            <span class="${statusClass(environment)}">${environment.status}</span>
+          </div>
+          <div class="meta">Image: ${environment.image}</div>
+          <div class="meta">Health: ${environment.health || 'unknown'}</div>
+          <div class="meta">URL: ${environment.url || 'Not available yet'}</div>
+          <div class="actions">
+            <button data-action="start" data-name="${environment.name}">Start</button>
+            <button data-action="restart" data-name="${environment.name}">Restart</button>
+            <button data-action="stop" data-name="${environment.name}">Stop</button>
+            <a class="${connectClass}" href="${connectHref}" target="_blank" rel="noopener noreferrer">Connect</a>
+          </div>
+        `;
+
+        grid.appendChild(card);
+      }
+    }
+
+    async function fetchState() {
+      setError('');
+      const response = await fetch('/api/environments');
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch environments');
+      }
+      render(data.environments || []);
+    }
+
+    async function mutate(name, action) {
+      setError('');
+      const response = await fetch(`/api/environments/${name}/${action}`, { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || `Failed to ${action} ${name}`);
+      }
+      render(data.environments || []);
+    }
+
+    grid.addEventListener('click', async (event) => {
+      const button = event.target.closest('button[data-action]');
+      if (!button) return;
+      const action = button.dataset.action;
+      const name = button.dataset.name;
+      if (!action || !name) return;
+
+      button.disabled = true;
+      try {
+        await mutate(name, action);
+      } catch (error) {
+        setError(error.message || 'Unexpected error');
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    refreshButton.addEventListener('click', async () => {
+      refreshButton.disabled = true;
+      try {
+        await fetchState();
+      } catch (error) {
+        setError(error.message || 'Unexpected error');
+      } finally {
+        refreshButton.disabled = false;
+      }
+    });
+
+    fetchState().catch((error) => setError(error.message || 'Unexpected error'));
+  </script>
+</body>
+</html>

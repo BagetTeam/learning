@@ -1,0 +1,29 @@
+[
+  {
+    "sites": [
+      "nextcloud"
+    ],
+    "task_id": 0,
+    "require_login": true,
+    "storage_state": null,
+    "start_url": "__NEXTCLOUD__",
+    "geolocation": null,
+    "intent_template": "",
+    "instantiation_dict": {},
+    "intent": "Delete all the individual contents of each folder then restore them using the trash folder and add them back to the folders they originally came from.",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "llm_judge_with_hint"
+      ],
+      "reference_answers": {
+        "exact_match": ""
+      },
+      "reference_url": "",
+      "program_html": [],
+      "string_note": "",
+      "reference_answer_raw_annotation": ""
+    },
+    "intent_template_id": null
+  }
+]
