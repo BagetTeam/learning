@@ -23,8 +23,14 @@ int main() {
             }
         }
 
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // black
+        // Clear screen (black)
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
+
+        // Draw rectangle (red)
+        SDL_Rect rect = {300, 200, 200, 100};
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+        SDL_RenderFillRect(renderer, &rect);
 
         SDL_RenderPresent(renderer);
     }
