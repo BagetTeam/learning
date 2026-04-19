@@ -14,9 +14,9 @@ class Renderer {
     };
 }
 
-class SDL2Renderer : public Renderer {
+class SDL3Renderer : public Renderer {
     public:
-        SDL2Renderer(SDL_Window* window);
+        SDL3Renderer(SDL_Window* window);
         void drawText(std::string text, int x, int y) override;
         void clearScreen() override;
         void drawCursor(int x, int y, int height) override;
@@ -39,19 +39,47 @@ void SDL2Renderer::drawText(std::string text, int x, int y) {
 }
 
 int main(int argc, char* argv[]) {
-    SDL_Init(SDL_INIT_VIDEO);
-    TTF_Init();
-    SDL_Window* window = SDL_CreateWindow("Notepad", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, SDL_WINDOW_SHOWN);
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    SDL_Surface* surface = TTF_RenderText_Solid(font, "Hello World", color);
-    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_Rect rect = {0, 0, surface->w, surface->h};
-    SDL_RenderCopy(renderer, texture, NULL, &rect);
-    SDL_DestroyTexture(texture);
-    SDL_FreeSurface(surface);
-    SDL_DestroyRenderer(renderer);
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
+        std::cout << "SDL_Init Error: " << SDL_GetError() << std::endl;
+        return SDL_APP_FAILURE;
+    }
+
+    if (!TTF_Init()) {
+        std::cout << "TTF_Init Error: " << SDL_GetError() << std::endl;
+        return SDL_APP_FAILURE;
+    }
+
+    SDL_Window *window = NULL;
+    SDL_Renderer *renderer = NULL;
+
+    if (!SDL_CreateWindowAndRenderer("SDL3 Keyboard", 800, 600, 0, &window, &renderer)) {
+        SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
+        return SDL_APP_FAILURE;
+    }
+
+    TTF_Font *font = TTF_OpenFont("FreeSans.ttf", 24);
+    if (!font) {
+        SDL_Log("Font load error: %s", SDL_GetError());
+        return SDL_APP_FAILURE;
+    }
+
+    // SDL_Window* window = SDL_CreateWindow("SDL3 is Working!", 640, 480, 0);    
+    // if (!window) {
+    //     std::cout << "Window Error: " << SDL_GetError() << std::endl;
+    //     return 1;
+    // }
+    // SDL_Delay(10000);
+
+    // SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    // SDL_Surface* surface = TTF_RenderText_Solid(font, "Hello World", color);
+    // SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    // SDL_Rect rect = {0, 0, surface->w, surface->h};
+    // SDL_RenderCopy(renderer, texture, NULL, &rect);
+    // SDL_DestroyTexture(texture);
+    // SDL_FreeSurface(surface);
+    // SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
-    TTF_Quit();
     SDL_Quit();
+    TTF_Quit();
     return 0;
 }
