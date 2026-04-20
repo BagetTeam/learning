@@ -3,12 +3,19 @@ project(Notepad)
 
 set(CMAKE_CXX_STANDARD 17)
 
-find_package(SDL2 REQUIRED)
-find_package(SDL2_ttf REQUIRED)
+find_package(SDL3 REQUIRED)
+find_package(SDL3_ttf REQUIRED)
 
-add_executable(app main.cpp)
+add_executable(app src/main.cpp)
 
 target_link_libraries(app
-    SDL2::SDL2
-    SDL2_ttf::SDL2_ttf
+    SDL3::SDL3main
+    SDL3::SDL3
+    SDL3_ttf::SDL3_ttf
+)
+
+configure_file(
+    ${CMAKE_SOURCE_DIR}/assets/FreeSans.ttf
+    ${CMAKE_BINARY_DIR}/FreeSans.ttf
+    COPYONLY
 )

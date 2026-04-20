@@ -25,18 +25,18 @@ class SDL3Renderer : public Renderer {
         SDL_Window* window;
 };
 
-SDL2Renderer::SDL2Renderer(SDL_Window* window) {
-    this->window = window;
-}
+// SDL3Renderer::SDL3Renderer(SDL_Window* window) {
+//     this->window = window;
+// }
 
-void SDL2Renderer::drawText(std::string text, int x, int y) {
-    SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), color);
-    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_Rect rect = {x, y, surface->w, surface->h};
-    SDL_RenderCopy(renderer, texture, NULL, &rect);
-    SDL_DestroyTexture(texture);
-    SDL_FreeSurface(surface);
-}
+// void SDL3Renderer::drawText(std::string text, int x, int y) {
+//     SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), color);
+//     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+//     SDL_Rect rect = {x, y, surface->w, surface->h};
+//     SDL_RenderCopy(renderer, texture, NULL, &rect);
+//     SDL_DestroyTexture(texture);
+//     SDL_FreeSurface(surface);
+// }
 
 int main(int argc, char* argv[]) {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -60,26 +60,38 @@ int main(int argc, char* argv[]) {
     TTF_Font *font = TTF_OpenFont("FreeSans.ttf", 24);
     if (!font) {
         SDL_Log("Font load error: %s", SDL_GetError());
-        return SDL_APP_FAILURE;
+        int a = 5;
     }
 
-    // SDL_Window* window = SDL_CreateWindow("SDL3 is Working!", 640, 480, 0);    
-    // if (!window) {
-    //     std::cout << "Window Error: " << SDL_GetError() << std::endl;
-    //     return 1;
-    // }
-    // SDL_Delay(10000);
+    SDL_Color white = {255, 255, 255, 255};
+    SDL_Surface *surface = TTF_RenderText_Blended(font, "Hello, SDL3!", 0, white);
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_DestroySurface(surface);
 
-    // SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    // SDL_Surface* surface = TTF_RenderText_Solid(font, "Hello World", color);
-    // SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-    // SDL_Rect rect = {0, 0, surface->w, surface->h};
-    // SDL_RenderCopy(renderer, texture, NULL, &rect);
-    // SDL_DestroyTexture(texture);
-    // SDL_FreeSurface(surface);
-    // SDL_DestroyRenderer(renderer);
+    float tw, th;
+    SDL_GetTextureSize(texture, &tw, &th);
+    SDL_FRect dst = {100.0f, 100.0f, tw, th};
+
+    // Main loop
+    bool running = true;
+    SDL_Event event;
+    while (running) {
+        while (SDL_PollEvent(&event))
+            if (event.type == SDL_EVENT_QUIT) running = false;
+
+        SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);
+        SDL_RenderClear(renderer);
+
+        SDL_RenderTexture(renderer, texture, NULL, &dst);
+
+        SDL_RenderPresent(renderer);
+    }
+
+    SDL_DestroyTexture(texture);
+    TTF_CloseFont(font);
+    SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
-    SDL_Quit();
     TTF_Quit();
+    SDL_Quit();
     return 0;
 }
