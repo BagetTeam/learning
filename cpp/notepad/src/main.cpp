@@ -2,6 +2,7 @@
 #include <SDL3/SDL_main.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include <iostream>
+#include <thread>
 
 
 class Renderer {
@@ -78,7 +79,24 @@ int main(int argc, char* argv[]) {
     while (running) {
         while (SDL_PollEvent(&event))
             if (event.type == SDL_EVENT_QUIT) running = false;
+            if (event.type == SDL_EVENT_KEY_DOWN) {
+                SDL_Keycode key = event.key.keysym.sym;
 
+                if (key == SDLK_ESCAPE) {
+                    running = false;
+                }
+
+                if (key == SDLK_w) {
+                    printf("W pressed\n");
+                }
+            }
+            if (event.type == SDL_EVENT_KEY_UP) {
+                SDL_Keycode key = event.key.keysym.sym;
+
+                if (key == SDLK_w) {
+                    printf("W released\n");
+                }
+            }
         SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);
         SDL_RenderClear(renderer);
 
