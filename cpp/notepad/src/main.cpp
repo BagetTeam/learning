@@ -80,20 +80,20 @@ int main(int argc, char* argv[]) {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_EVENT_QUIT) running = false;
             if (event.type == SDL_EVENT_KEY_DOWN) {
-                SDL_Keycode key = event.key.keysym.sym;
+                SDL_Keycode key = event.key.key;
                 
                 if (key == SDLK_ESCAPE) {
                     running = false;
                 }
                 
-                if (key == SDLK_w) {
+                if (key == SDLK_W) {
                     printf("W pressed\n");
                 }
             }
             if (event.type == SDL_EVENT_KEY_UP) {
-                SDL_Keycode key = event.key.keysym.sym;
+                SDL_Keycode key = event.key.key;
                 
-                if (key == SDLK_w) {
+                if (key == SDLK_W) {
                     printf("W released\n");
                 }
             }
