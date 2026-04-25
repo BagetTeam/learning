@@ -97,7 +97,7 @@ int main(int argc, char* argv[]) {
         return SDL_APP_FAILURE;
     }
 
-    const SDL_Window *window = NULL;
+    SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
 
     if (!SDL_CreateWindowAndRenderer("SDL3 Keyboard", 800, 600, 0, &window, &renderer)) {
