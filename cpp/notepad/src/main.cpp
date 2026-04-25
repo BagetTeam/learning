@@ -5,6 +5,38 @@
 #include <thread>
 
 
+class TextEditor {
+public:
+    bool handleEvent(const SDL_Event& event) {
+        bool running = true;
+        if (event.type == SDL_EVENT_QUIT) running = false;
+        if (event.type == SDL_EVENT_KEY_DOWN) {
+            SDL_Keycode key = event.key.key;
+            
+            if (key == SDLK_ESCAPE) {
+                running = false;
+            }
+            
+            if (key == SDLK_W) {
+                printf("W pressed\n");
+            }
+        }
+        if (event.type == SDL_EVENT_KEY_UP) {
+            SDL_Keycode key = event.key.key;
+            
+            if (key == SDLK_W) {
+                printf("W released\n");
+            }
+        }
+        if (event.type == SDL_EVENT_WINDOW_RESIZED) {
+            onResize(event.window.data1, event.window.data2);
+        }
+        return running;
+    }
+
+    void onResize(int w, int h);
+};
+
 class Renderer {
     public:
         virtual void drawText(std::string text, int x, int y) = 0;
@@ -25,6 +57,22 @@ class SDL3Renderer : public Renderer {
         SDL_Window* window;
 };
 
+class SDLWindow {
+    public:
+        SDLWindow(SDL_Window* win) : window(win) {};
+
+        void getSize(int& w, int& h) const {
+            SDL_GetWindowSize(window, &w, &h);
+        }
+
+        void setSize(int w, int h) {
+            SDL_SetWindowSize(window, w, h);
+        }
+
+        SDL_Window* get() const { return window; }
+    private:
+        SDL_Window* window;
+};
 // SDL3Renderer::SDL3Renderer(SDL_Window* window) {
 //     this->window = window;
 // }
@@ -49,7 +97,7 @@ int main(int argc, char* argv[]) {
         return SDL_APP_FAILURE;
     }
 
-    SDL_Window *window = NULL;
+    const SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
 
     if (!SDL_CreateWindowAndRenderer("SDL3 Keyboard", 800, 600, 0, &window, &renderer)) {
@@ -73,29 +121,12 @@ int main(int argc, char* argv[]) {
     SDL_FRect dst = {100.0f, 100.0f, tw, th};
 
     // Main loop
+    TextEditor editor = TextEditor();
     bool running = true;
     SDL_Event event;
     while (running) {
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_EVENT_QUIT) running = false;
-            if (event.type == SDL_EVENT_KEY_DOWN) {
-                SDL_Keycode key = event.key.key;
-                
-                if (key == SDLK_ESCAPE) {
-                    running = false;
-                }
-                
-                if (key == SDLK_W) {
-                    printf("W pressed\n");
-                }
-            }
-            if (event.type == SDL_EVENT_KEY_UP) {
-                SDL_Keycode key = event.key.key;
-                
-                if (key == SDLK_W) {
-                    printf("W released\n");
-                }
-            }
+            editor.handleEvent(event);
         }
         SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);
         SDL_RenderClear(renderer);
