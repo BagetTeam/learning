@@ -12,8 +12,7 @@ class Renderer {
         virtual void drawCursor(int x, int y, int height) = 0;
         virtual void drawSelection(int x, int y, int width, int height) = 0;
         ~Renderer() = default;
-    };
-}
+};
 
 class SDL3Renderer : public Renderer {
     public:
@@ -58,7 +57,7 @@ int main(int argc, char* argv[]) {
         return SDL_APP_FAILURE;
     }
 
-    TTF_Font *font = TTF_OpenFont("FreeSans.ttf", 24);
+    TTF_Font *font = TTF_OpenFont("assets/FreeSans.ttf", 24);
     if (!font) {
         SDL_Log("Font load error: %s", SDL_GetError());
         int a = 5;
