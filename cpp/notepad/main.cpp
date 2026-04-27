@@ -20,6 +20,10 @@ struct AppContext {
     TTF_Font* font_b = nullptr;
     TTF_Font* font_i = nullptr;
     TTF_Font* font_bi = nullptr;
+
+    std::string text;
+
+    
 };
 
 SDL_Window *win = NULL;
