@@ -3,6 +3,7 @@
 
 #include <string>
 #include <SDL3/SDL.h>
+#include <SDL3_ttf/SDL_ttf.h>
 
 namespace Editor {
 
@@ -10,7 +11,7 @@ namespace Editor {
     public:
         explicit Renderer(SDL_Renderer* rend) : m_renderer(rend) {}
         
-        void drawText(const std::string& text, int x, int y) const;
+        void drawText(const std::string& text, int x, int y, TTF_Font* font, SDL_Color color) const;
         void clearScreen();
         void drawCursor(int x, int y, int height) const;
         void drawSelection(int x, int y, int width, int height) const;
