@@ -1,5 +1,4 @@
-#ifndef EDITOR_RENDERER_HPP
-#define EDITOR_RENDERER_HPP
+#pragma once
 
 #include <string>
 #include <SDL3/SDL.h>
@@ -22,6 +21,4 @@ namespace Editor {
         SDL_Renderer* m_renderer = nullptr;
     };
 
-} 
-
-#endif
+}
