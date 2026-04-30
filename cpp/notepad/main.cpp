@@ -8,40 +8,13 @@
 #include <include/Window.hpp>
 #include <include/Renderer.hpp>
 #include <include/TextEditor.hpp>
+#include <include/AppContext.hpp>
 
 using namespace Editor; 
-
-struct AppContext {
-    Window* window;
-    Renderer* renderer;
-    TextEditor* textEditor;
-        
-    TTF_Font* font_n = nullptr;
-    TTF_Font* font_b = nullptr;
-    TTF_Font* font_i = nullptr;
-    TTF_Font* font_bi = nullptr;
-
-    std::string text;
-
-    
-};
 
 SDL_Window *win = NULL;
 SDL_Renderer *rend = NULL;
 
-
-// SDL3Renderer::SDL3Renderer(SDL_Window* window) {
-//     this->window = window;
-// }
-
-// void SDL3Renderer::drawText(std::string text, int x, int y) {
-//     SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), color);
-//     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-//     SDL_Rect rect = {x, y, surface->w, surface->h};
-//     SDL_RenderCopy(renderer, texture, NULL, &rect);
-//     SDL_DestroyTexture(texture);
-//     SDL_FreeSurface(surface);
-// }
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
