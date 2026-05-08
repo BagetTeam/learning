@@ -2,12 +2,13 @@
 
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
-#include <include/Window.hpp>
-#include <include/Renderer.hpp>
-#include <include/TextEditor.hpp>
 #include <string>
 
 namespace Editor {
+    class Window;
+    class Renderer;
+    class TextEditor;
+    
     struct AppContext {
         Window* window;
         Renderer* renderer;
