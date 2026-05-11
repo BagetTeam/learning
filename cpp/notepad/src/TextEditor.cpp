@@ -1,4 +1,5 @@
 #include <include/TextEditor.hpp>
+#include <cstdio>
 
 namespace Editor
 {
