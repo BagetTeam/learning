@@ -5,15 +5,15 @@ namespace Editor
 {
     SDL_AppResult TextEditor::handleEvent(const SDL_Event& event) {
         if (event.type == SDL_EVENT_QUIT) return SDL_APP_FAILURE;
-        if (event.type == SDL_EVENT_KEY_DOWN) {
+        if (event.type == SDL_EVENT_TEXT_INPUT) {
+        // event.text.text is a UTF-8 string of the typed character(s)
+            printf("Character typed: %s\n", event.text.text);
+        }
+        else if (event.type == SDL_EVENT_KEY_DOWN) {
             SDL_Keycode key = event.key.key;
             
             if (key == SDLK_ESCAPE) {
                 return SDL_APP_FAILURE;
-            }
-            
-            if (key == SDLK_W) {
-                printf("W pressed\n");
             }
         }
         if (event.type == SDL_EVENT_KEY_UP) {
