@@ -32,4 +32,8 @@ namespace Editor
     void TextEditor::onResize(int w, int h) {
 
     }
+
+    std::string TextEditor::getText() {
+        return m_text;
+    }
 } // namespace Editor
