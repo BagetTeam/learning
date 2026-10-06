@@ -2,7 +2,6 @@
 
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
-#include <string>
 
 namespace Editor {
     class Window;
@@ -18,7 +17,5 @@ namespace Editor {
         TTF_Font* font_b = nullptr;
         TTF_Font* font_i = nullptr;
         TTF_Font* font_bi = nullptr;
-        
-        std::string text;
     };
 }
