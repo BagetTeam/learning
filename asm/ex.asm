@@ -17,8 +17,8 @@ sum:
     PUSH {V1, V2, V3} // **you** push any registers used below onto the stack
     // int answer = 0;
     // for (int index=0; index<length; index++)
-    LDR V1, #0 // **you** answer=0
-    LDR V2, #0 // **you** index=0
+    MOV V1, #0 // **you** answer=0
+    MOV V2, #0 // **you** index=0
 sumIter:
     CMP V2, A2 // **you** index<length?
     BGE sumDone // **you** if not, branch to sumDone
