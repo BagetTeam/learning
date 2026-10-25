@@ -1,3 +1,5 @@
+// Bubble Sort in ascending order (signed-bytes)
+// In place modification, return input array address in A1
 .global _start
 
 Stuff:  .byte 0,3,2,5,5,4,1 // input array
@@ -17,6 +19,7 @@ stop:
     // pre-- A1: Address of array of signed bytes to be sorted
     // pre-- A2: Number of elements in array
     // post- A1: Address of sorted array
+
 sort:
     push {V1, V2, V3, V4, V5}
     cmp A2, #2

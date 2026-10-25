@@ -21,7 +21,7 @@ find_next_prime:
     LDRH V6, [A1, V6]
     CMP V6, #0
     BNE found_next_prime
-    ADD V2, #1
+    ADD V2, V2, #1 // num++
     B find_next_prime
 found_next_prime:
     MOV V4, V6 
