@@ -12,7 +12,6 @@ stop:
 // pre-- A1: Pell number index i to calculate, n >= 0
 // post- A1: Pell number P = pell(n)
 pell:
-    // PUSH
     push {V1, V2, LR}
     mov V1, A1 // n
 
@@ -31,6 +30,5 @@ pell:
     bl pell
     add A1, V2, A1
 pell_stop:
-    // POP   
     pop {V1, V2, LR}
     bx LR
