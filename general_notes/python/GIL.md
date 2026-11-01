@@ -102,6 +102,17 @@ if account.balance >= 100:
 ```
 need to be executed together.
 
+## Decide what is being ran (thread)
+
+Thread can hold the GIL. When doing an IO bound task, it can let it go (CPython's I/O implementation releases the GIL), so doesn't take up any computing power. 
+
+CPython manages what gets executed based on threads that are holding the GIL. Every 5 milliseconds (usually), it checks whether we are at appropriate *interpreter checkpoint*, releasing the GIL and letting other threads compete for it. Built around scheduling for fairness.
+Interpreter checkpoint: If CPython is in middle of operation that shouldn't be interrupted in the middle, like a long-running C function, at the 5ms, it won't necessarly switch threads.
+
+Note: OS can assign different threads to multiple core, and schedule them (want to run all in parallel), but GIL will just allow one to run at a time.
+OS Scheduler -> CPU Execution time (depends on cores)
+CPython GIL -> Permission to execute python bytecode
+
 ## Conclusion
 
 GIL protects interpreter from internal concurrency problems. We manage our program logic when dealing with threads.
