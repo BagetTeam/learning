@@ -17,7 +17,7 @@ In Linker, this is where we have a runtime also passed to it. Purpose of runtime
 - - Prepare env vars
 - - Initialize standard I/O (stdin, stdout, stderr), memory allocation (malloc free)
 - - Locate program arguments and prepare argc and argv[]
-- - Calling main, and passing argc and argv.
+- - Calling main, and passing argc and argv (for Unix, this passed on stack, while windows is on heap).
 - - Setting up thread-local storage and runtime state for initial thread
 - - Initialize secrutiy mechanisms (stack cookies)
 - - Prepare normal termination (set cleanup and flushes buffered output routines for when main function returns)
