@@ -63,7 +63,44 @@ Explaining prob density:
 
 > If from 1.5 <= X <= 1.6, our density is high, while 1.1 <= X <= 1.2 is low, for a same interval, the probability of x appearing in first interval is much higher. If we had an infinite number of points, its much more dense, and so chance of a point being within that dense region is higher.
 
+### How it actually works
+
+#### Expectation-Maximization (EM)
+
+#### E-Step:
+
+1. Use this
+
+   $$
+   \boxed{\gamma_{ic}=\frac{\pi_c\mathcal N(x_i\mid\mu_c,\Sigma_c)}{\sum_{j=1}^{C}\pi_j\mathcal N(x_i\mid\mu_j,\Sigma_j)}}
+   $$
+   - Numerator: Weighted density of point \(i\) under Gaussian \(c\).
+   - Denominator: Total density of that point under all Gaussians.
+   - Result: The fraction of the point's mixture density contributed by Gaussian \(c\).
+
+2. From this, get responsbility of each gaussian to a specific point
+
+#### M-Step:
+
+Guassian sees what point it is most responsible for.
+Get weighted average of data points based on responsibility as weight -> New mean
+Variance also change similarly, based on how spread out it is.
+Finally, get mixing weights (how much gaussian contributes to overall data) -> $ responsiblity (N_A) / points (n) $
+
+#### Finally
+
+Check improving the log-likelihood until convergence (until it stops changing).
+
+\*Note: Just like Kmeans, depending on start gaussians/centroids, it could make different final configs (local maximas)
+
+-
+
 ## Kmean
+
+1. Put centroids
+2. Get distance of point to centroids, closest = group.
+3. Get mean of grouping, new centroid
+4. Repeat 2-3 until minimal change
 
 ## BIC
 
