@@ -47,4 +47,7 @@ How it works:
 2. `asyncio.Task` object maintains coroutine state
 3. Tasks becomes a `Future`, representing task it is waiting for
 4. Event loop runs other ready tasks
-
+5. We receive `Future` completion callback
+6. Task is scheduled to ready **queue**, and waits its turn 
+7. Continue task where it left off, but with result from the await
+*Note: It is the task's continuation callback that is stored in queue (not task object iself)*
