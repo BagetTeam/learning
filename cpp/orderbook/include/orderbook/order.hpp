@@ -34,24 +34,46 @@ class OrderBook {
     OrderBook();
 
     int BestBid() {
-        auto it = std::prev(_bidBook.end());
+        auto it = std::prev(bidBook_.end());
         return it->first;
     }
 
     int BestSell() {
-        auto it = _sellBook.first();
+        auto it = sellBook_.begin();
         return it->first;
     }
 
-    void submit();
+    void submit(Order order);
 
-    boolean cancel();
+    bool cancel(OrderID target) {
+        if (orders_.find(target) == orders_.end()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool modify(OrderID target, Order order) {
+        if (orders_.find(target) == orders_.end()) {
+            return false;
+        }
+        
+        return true;
+    }
 
     private:
-        Book _sellBook;
-        Book _bidBook;
-        std::unordered_map<OrderId, Order> _orders;
-}
+        Book sellBook_;
+        Book bidBook_;
+        std::unordered_map<OrderID, Order> orders_;
+};
+
+// Represents all orders resting at a particular price, maintaining their priority.
+class PriceLevel {
+public:
+    Price price() const;
+    Quantity totalQuantity() const;
+    size_t orderCount() const;
+};
 
 
 // matching engine determines when an incoming order can execute against them.
@@ -59,4 +81,4 @@ class Engine {
     public:
         Engine();
         void HandleNewOrder(Order order);
-}
+};

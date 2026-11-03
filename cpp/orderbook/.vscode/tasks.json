@@ -1,0 +1,15 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run main.cpp",
+            "type": "shell",
+            "command": "mkdir -p \"${workspaceFolder}/Build\" && clang++ -std=c++23 -Wall -Wextra -pedantic \"${workspaceFolder}/src/main.cpp\" -o \"${workspaceFolder}/Build/main\" && \"${workspaceFolder}/Build/main\"",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}
