@@ -1,9 +1,6 @@
 #pragma once
 
-#include <array>
 #include <cstddef>
-#include <optional>
-#include <iostream>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -83,10 +80,10 @@ public:
 
     std::vector<std::pair<Price, Quantity>> getDepth(Side side, int depth) {
         if (side == Side::Buy) {
-            populateDepth(bidBook_, depth);
+            return populateDepth(bidBook_, depth);
         }
         else {
-            populateDepth(sellBook_, depth);
+            return populateDepth(sellBook_, depth);
         }
     }
 
