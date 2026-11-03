@@ -30,3 +30,33 @@ class Order {
 };
 
 
+class OrderBook {
+    OrderBook();
+
+    int BestBid() {
+        auto it = std::prev(_bidBook.end());
+        return it->first;
+    }
+
+    int BestSell() {
+        auto it = _sellBook.first();
+        return it->first;
+    }
+
+    void submit();
+
+    boolean cancel();
+
+    private:
+        Book _sellBook;
+        Book _bidBook;
+        std::unordered_map<OrderId, Order> _orders;
+}
+
+
+// matching engine determines when an incoming order can execute against them.
+class Engine {
+    public:
+        Engine();
+        void HandleNewOrder(Order order);
+}
