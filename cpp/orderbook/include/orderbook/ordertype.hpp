@@ -1,7 +1,7 @@
 #pragma once
-
-
 #include "types.hpp"
+
+
 enum class OrderType {
     Limit,
     Market,

@@ -1,8 +1,12 @@
 #pragma once
 
-#include <string>
+#include <array>
+#include <cstddef>
+#include <optional>
 #include <iostream>
 #include <stdexcept>
+#include <utility>
+#include <vector>
 #include "ordertype.hpp"
 #include "types.hpp"
 
@@ -21,6 +25,15 @@ class Order {
             }
         }
 
+        void removeQuantity(Quantity remove) {
+            quantity_ -= remove;
+        }
+
+        Quantity getQuantity() { return quantity_; }
+        Price getPrice() { return price_; }
+        Side getSide() { return side_; }
+        OrderType getOrderType() { return orderType_; }
+
     private:
         OrderID orderId_;
         Side side_;
@@ -31,14 +44,21 @@ class Order {
 
 
 class OrderBook {
+public:
     OrderBook();
 
-    int BestBid() {
-        auto it = std::prev(bidBook_.end());
+    Order* getOrder(OrderID id) {
+        auto it = orders_.find(id);
+        if (it == orders_.end()) return std::nullptr_t();
+        return &it->second;
+    } 
+
+    Price bestBid() {
+        auto it = bidBook_.begin(); 
         return it->first;
     }
 
-    int BestSell() {
+    Price bestSell() {
         auto it = sellBook_.begin();
         return it->first;
     }
@@ -61,10 +81,38 @@ class OrderBook {
         return true;
     }
 
-    private:
-        Book sellBook_;
-        Book bidBook_;
-        std::unordered_map<OrderID, Order> orders_;
+    std::vector<std::pair<Price, Quantity>> getDepth(Side side, int depth) {
+        if (side == Side::Buy) {
+            populateDepth(bidBook_, depth);
+        }
+        else {
+            populateDepth(sellBook_, depth);
+        }
+    }
+
+private:
+    BidBook bidBook_;
+    SellBook sellBook_;
+    std::unordered_map<OrderID, Order> orders_;
+
+    template<typename BookTypes>
+    std::vector<std::pair<Price, Quantity>> populateDepth(BookTypes& book, int depth) {
+        std::vector<std::pair<Price, Quantity>> v;
+        v.reserve(depth); 
+
+        int i = 0;
+        for (auto it = book.begin(); it != book.end(); it++) {
+            if (i >= depth) break;
+
+            Quantity q = 0;
+            for (const OrderID id: it->second) {
+                q += getOrder(id)->getQuantity();
+            }      
+            v.push_back({it->first, q});
+            i++;
+        }
+        return v;
+    }
 };
 
 // Represents all orders resting at a particular price, maintaining their priority.
