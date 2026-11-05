@@ -1,5 +1,5 @@
 #pragma once
-#include "Order.hpp"
+#include "order.hpp"
 #include "ordertype.hpp"
 #include "types.hpp"
 
@@ -8,34 +8,20 @@ class MatchingEngine {
 public:
     MatchingEngine();
 
-    bool submit(Order order) {
-        if (!book_.orderExists(order.getOrderId())) return false;
-        
-        switch (order.getOrderType())
-        {
-        case (OrderType::Market || OrderType::Limit):
-            match(order);
-        case (OrderType::Modify):
+    void submit(Order order) {        
+        switch (order.getOrderType()) {
+            case OrderType::Market:
+            case OrderType::Limit:
+                match(order);
+            case (OrderType::Modify):
+            case (OrderType::Cancel):
+                if (!book_.orderExists(order.getOrderId())) return;
+                book_.removeOrder(&order);
+                if (order.getOrderType() == OrderType::Modify) match(order);
             
-            
-        
-        default:
-            break;
+            default:
+                break;
         }
-        if (order.getSide() == Side::Buy) {
-            // check sell book, and fill
-            if (bidBook_.fin)
-            bidBook_.insert({})
-        }   
-        else {
-
-        }     
-        
-        return true;
-    }
-
-    bool cancel(OrderID id) {
-
     }
 
     void match(Order& taker) {
