@@ -15,8 +15,10 @@ public:
                 match(order);
             case (OrderType::Modify):
             case (OrderType::Cancel):
-                if (!book_.orderExists(order.getOrderId())) return;
-                book_.removeOrder(&order);
+                if (!book_.removeOrder(&order)) {
+                    std::string action = (order.getOrderType() == OrderType::Modify) ? "modify" : "cancel";
+                    throw std::invalid_argument("Order does not exists, cannot " + action +" it.");
+                }
                 if (order.getOrderType() == OrderType::Modify) match(order);
             
             default:
@@ -38,6 +40,12 @@ public:
             taker.removeQuantity(fill);
             maker->removeQuantity(fill);
             if (maker->getQuantity() == 0) book_.removeOrder(maker);
+        }
+        if (taker.getQuantity() > 0 && 
+            (taker.getOrderType() == OrderType::Limit || 
+                taker.getOrderType() == OrderType::Modify) && 
+            !book_.addOrder(&taker)) {
+                throw std::runtime_error("Tried adding new order to orderbook, but failed.");
         }
     }
 

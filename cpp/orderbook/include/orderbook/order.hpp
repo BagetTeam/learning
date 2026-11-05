@@ -80,23 +80,57 @@ public:
         return getOrder(sellBook_.begin()->second.front());
     }
 
+    bool addOrder(Order* order) {
+        OrderID id = order->getOrderId();
+        if (orderExists(id)) {
+            return false;
+        }
+
+        orders_.insert({id, *order});
+        Price pr = order->getPrice().value();
+        if (order->getSide() == Side::Buy) {
+            auto it = bidBook_.find(pr);
+            if (it == bidBook_.end()) {
+                bidBook_.insert({pr, {id}});
+            }
+            else {
+                it->second.push_back(id);
+            }
+        }
+        else {
+            auto it = sellBook_.find(pr);
+            if (it == sellBook_.end()) {
+                sellBook_.insert({pr, {id}});
+            }
+            else {
+                it->second.push_back(id);
+            }
+        }
+        return true;
+    }
+
     bool removeOrder(Order* order) {
-        return true;
-    }
-
-    bool cancel(OrderID target) {
-        if (!orderExists(target)) {
+        OrderID id = order->getOrderId();
+        if (!orderExists(id)) {
             return false;
         }
-
-        return true;
-    }
-
-    bool modify(OrderID target, Order order) {
-        if (!orderExists(target)) {
-            return false;
+        orders_.erase(id);
+        Price pr = order->getPrice().value();
+        if (order->getSide() == Side::Buy) {
+            auto it = bidBook_.find(pr);
+            if (it == bidBook_.end()) {
+                return false;
+            }
+            it->second.remove(id);
         }
-        
+        else {
+            auto it = sellBook_.find(pr);
+            if (it == sellBook_.end()) {
+                return false;
+            }
+            it->second.remove(id);
+        }
+
         return true;
     }
 
