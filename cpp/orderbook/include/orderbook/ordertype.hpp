@@ -3,9 +3,9 @@
 
 
 enum class OrderType {
-    Limit,
-    Market,
-    Cancel,
+    Limit, // with a price
+    Market, // market price
+    Cancel, 
     Modify,
 };
 

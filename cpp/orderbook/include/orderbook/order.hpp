@@ -4,13 +4,14 @@
 #include <stdexcept>
 #include <utility>
 #include <vector>
+#include <optional>
 #include "ordertype.hpp"
 #include "types.hpp"
 
 
 class Order {
     public: 
-        Order(OrderID orderId, Side side, OrderType orderType, Price price, Quantity quantity)
+        Order(OrderID orderId, Side side, OrderType orderType, std::optional<Price> price, Quantity quantity)
             : orderId_{orderId}
             , side_{side}
             , orderType_{orderType}
@@ -20,22 +21,29 @@ class Order {
             if (quantity == 0) {
                 throw std::invalid_argument("quantity needs to be greater than 0");
             }
+            if ((orderType_ == OrderType::Limit || orderType_ == OrderType::Modify) 
+            && !price.has_value()) {
+                throw std::invalid_argument("limit or modify orders need to have a price with it");
+            }
         }
 
         void removeQuantity(Quantity remove) {
             quantity_ -= remove;
         }
 
+        OrderID getOrderId() { return orderId_; }
         Quantity getQuantity() { return quantity_; }
-        Price getPrice() { return price_; }
+        std::optional<Price> getPrice() { return price_; }
         Side getSide() { return side_; }
         OrderType getOrderType() { return orderType_; }
+
+        ~Order();
 
     private:
         OrderID orderId_;
         Side side_;
         OrderType orderType_;
-        Price price_;
+        std::optional<Price> price_;
         Quantity quantity_;
 };
 
@@ -49,21 +57,37 @@ public:
         if (it == orders_.end()) return std::nullptr_t();
         return &it->second;
     } 
+    
+    bool orderExists(OrderID id) {
+        return orders_.find(id) != orders_.end();
+    }
 
-    Price bestBid() {
+    Price bestBidPrice() {
         auto it = bidBook_.begin(); 
         return it->first;
     }
 
-    Price bestSell() {
+    Price bestSellPrice() {
         auto it = sellBook_.begin();
         return it->first;
     }
 
-    void submit(Order order);
+    Order* bestBidOrder() {
+        auto it = bidBook_.begin(); 
+        return getOrder(it->second.front());
+    }
+
+    Order* bestSellOrder() {
+        auto it = sellBook_.begin(); 
+        return getOrder(it->second.front());
+    }
+
+    bool removeOrder(Order* order) {
+        return true;
+    }
 
     bool cancel(OrderID target) {
-        if (orders_.find(target) == orders_.end()) {
+        if (!orderExists(target)) {
             return false;
         }
 
@@ -71,7 +95,7 @@ public:
     }
 
     bool modify(OrderID target, Order order) {
-        if (orders_.find(target) == orders_.end()) {
+        if (!orderExists(target)) {
             return false;
         }
         
@@ -92,6 +116,7 @@ private:
     SellBook sellBook_;
     std::unordered_map<OrderID, Order> orders_;
 
+    
     template<typename BookTypes>
     std::vector<std::pair<Price, Quantity>> populateDepth(BookTypes& book, int depth) {
         std::vector<std::pair<Price, Quantity>> v;
@@ -101,15 +126,16 @@ private:
         for (auto it = book.begin(); it != book.end(); it++) {
             if (i >= depth) break;
 
-            Quantity q = 0;
+            Quantity qt = 0;
             for (const OrderID id: it->second) {
-                q += getOrder(id)->getQuantity();
+                qt += getOrder(id)->getQuantity();
             }      
-            v.push_back({it->first, q});
+            v.push_back({it->first, qt});
             i++;
         }
         return v;
     }
+
 };
 
 // Represents all orders resting at a particular price, maintaining their priority.
@@ -120,10 +146,3 @@ public:
     size_t orderCount() const;
 };
 
-
-// matching engine determines when an incoming order can execute against them.
-class Engine {
-    public:
-        Engine();
-        void HandleNewOrder(Order order);
-};

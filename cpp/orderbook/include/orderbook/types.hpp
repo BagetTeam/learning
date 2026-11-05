@@ -2,14 +2,15 @@
 
 #include <cstdint>
 #include <ctime>
-#include <deque>
+// #include <list>
+#include <list>
 #include <map>
 
 using Price = std::uint32_t;
 using Quantity = std::uint32_t;
 using OrderID = std::uint64_t;
 
-using OrderQueue = std::deque<OrderID>; // would be a linked list for better efficiency when cancelling
+using OrderQueue = std::list<OrderID>; // would be a linked list for better efficiency when cancelling
 using BidBook = std::map<Price, OrderQueue, std::greater<int>>; //sorted keys descending
 using SellBook = std::map<Price, OrderQueue>; //sorted keys ascending
 
@@ -21,5 +22,10 @@ using SellBook = std::map<Price, OrderQueue>; //sorted keys ascending
     10.96: []
 
 }
+
+
+(1) <-->  <--> (3) <--> (4)
+
+
 
 */
