@@ -54,7 +54,7 @@ public:
 
     Order* getOrder(OrderID id) {
         auto it = orders_.find(id);
-        if (it == orders_.end()) return std::nullptr_t();
+        if (it == orders_.end()) return nullptr;
         return &it->second;
     } 
     
@@ -63,23 +63,21 @@ public:
     }
 
     Price bestBidPrice() {
-        auto it = bidBook_.begin(); 
-        return it->first;
+        return bidBook_.begin()->first;
     }
 
     Price bestSellPrice() {
-        auto it = sellBook_.begin();
-        return it->first;
+        return sellBook_.begin()->first;
     }
 
     Order* bestBidOrder() {
-        auto it = bidBook_.begin(); 
-        return getOrder(it->second.front());
+        if (bidBook_.empty()) return nullptr;
+        return getOrder(bidBook_.begin()->second.front());
     }
 
     Order* bestSellOrder() {
-        auto it = sellBook_.begin(); 
-        return getOrder(it->second.front());
+        if (bidBook_.empty()) return nullptr;
+        return getOrder(sellBook_.begin()->second.front());
     }
 
     bool removeOrder(Order* order) {

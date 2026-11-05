@@ -1,5 +1,6 @@
 #pragma once
 #include "Order.hpp"
+#include "ordertype.hpp"
 #include "types.hpp"
 
 // matching engine determines when an incoming order can execute against them.
@@ -13,12 +14,9 @@ public:
         switch (order.getOrderType())
         {
         case (OrderType::Market):
-            if (order.getSide() == Side::Buy) {
-                handleMarketBuy(order);
-            }
-            else {
-                handleMarketSell(order);
-            }
+            return handleMarketTrade(order);
+        case (OrderType::Limit):
+            
         
         default:
             break;
@@ -39,37 +37,56 @@ public:
 
     }
 
-    Price handleMarketBuy(Order order) {
-        Quantity qt = order.getQuantity();
-        while (qt > 0) {
-            Order* best_sell = book_.bestSellOrder();
-            Quantity sell_qt = best_sell->getQuantity();
-            if (qt >= sell_qt) {
-                book_.removeOrder(best_sell);
-                
-            }
+    void match(Order& taker) {
+        while (taker.getQuantity() > 0) {
+            Order* maker = (taker.getSide() == Side::Buy) ? book_.bestSellOrder() : book_.bestBidOrder();
+            if (!maker) break;
+
+            Quantity fill = std::min(maker->getQuantity(), taker.getQuantity());
+            trades_.push_back({ maker->getOrderId(),
+                                taker.getOrderId(),
+                                maker->getPrice().value(),
+                                fill});
+
+            taker.removeQuantity(fill);
+            maker->removeQuantity(fill);
+            if (maker->getQuantity() == 0) book_.removeOrder(maker);
         }
-
     }
 
-    
-    
-    
-    bool handleMarketSell() {
-        
+    bool crosses(Order& taker, Order& )
+    Quantity handleMarketTrade(Order* order) {
+        Quantity qt = order->getQuantity();
+        while (qt > 0) {
+            if (!fillOnBestOrder(&qt, order)) break;
+        }
+        return qt;
     }
-    
-    bool handleLimitBuy() {
-        
+
+    bool handleLimitTrade(Order* order) {
+        Quantity qt = order->getQuantity();
+        Price pr = order->getPrice().value();
+        while (qt > 0 && orderCanFill(pr, order->getSide())) {
+            if (!fillOnBestOrder(&qt, order)) break;
+        }
     }
-    
-    bool handleLimitSell() {
-        
-    }
+
     
 private:
     OrderBook book_;
+    std::vector<Trade> trades_;
     
+    bool orderCanFill(Price price, Side side) {
+        if (side == Side::Buy) {
+            return price >= book_.bestSellPrice();
+        }
+        else {
+            return price <= book_.bestBidPrice();
+        }
+    }
 
+    bool fillOnBestOrder(Quantity* qt, Order* order) {
+        
+    }
     
 };
