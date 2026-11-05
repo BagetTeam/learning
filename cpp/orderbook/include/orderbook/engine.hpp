@@ -13,9 +13,10 @@ public:
         
         switch (order.getOrderType())
         {
-        case (OrderType::Market):
-            return handleMarketTrade(order);
-        case (OrderType::Limit):
+        case (OrderType::Market || OrderType::Limit):
+            match(order);
+        case (OrderType::Modify):
+            
             
         
         default:
@@ -40,7 +41,7 @@ public:
     void match(Order& taker) {
         while (taker.getQuantity() > 0) {
             Order* maker = (taker.getSide() == Side::Buy) ? book_.bestSellOrder() : book_.bestBidOrder();
-            if (!maker) break;
+            if (!maker || !crosses(taker, *maker)) break;
 
             Quantity fill = std::min(maker->getQuantity(), taker.getQuantity());
             trades_.push_back({ maker->getOrderId(),
@@ -54,39 +55,15 @@ public:
         }
     }
 
-    bool crosses(Order& taker, Order& )
-    Quantity handleMarketTrade(Order* order) {
-        Quantity qt = order->getQuantity();
-        while (qt > 0) {
-            if (!fillOnBestOrder(&qt, order)) break;
-        }
-        return qt;
-    }
-
-    bool handleLimitTrade(Order* order) {
-        Quantity qt = order->getQuantity();
-        Price pr = order->getPrice().value();
-        while (qt > 0 && orderCanFill(pr, order->getSide())) {
-            if (!fillOnBestOrder(&qt, order)) break;
-        }
+    bool crosses(Order& taker, Order& maker) {
+        if (taker.getOrderType() == OrderType::Market) return true;
+        Price tprice = taker.getPrice().value();
+        Price mprice = maker.getPrice().value();
+        return (taker.getSide() == Side::Buy) ? tprice >= mprice : tprice <= mprice ;
     }
 
     
 private:
     OrderBook book_;
     std::vector<Trade> trades_;
-    
-    bool orderCanFill(Price price, Side side) {
-        if (side == Side::Buy) {
-            return price >= book_.bestSellPrice();
-        }
-        else {
-            return price <= book_.bestBidPrice();
-        }
-    }
-
-    bool fillOnBestOrder(Quantity* qt, Order* order) {
-        
-    }
-    
 };
