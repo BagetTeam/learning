@@ -50,8 +50,6 @@ class Order {
 
 class OrderBook {
 public:
-    OrderBook();
-
     Order* getOrder(OrderID id) {
         auto it = orders_.find(id);
         if (it == orders_.end()) return nullptr;

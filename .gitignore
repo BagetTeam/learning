@@ -1,3 +1,6 @@
 .vscode
+!cpp/orderbook/.vscode/
+cpp/orderbook/.vscode/*
+!cpp/orderbook/.vscode/tasks.json
 .vs
 .DS_Store
