@@ -35,8 +35,6 @@ class Order {
         Side getSide() { return side_; }
         OrderType getOrderType() { return orderType_; }
 
-        ~Order();
-
     private:
         OrderID orderId_;
         Side side_;
@@ -44,4 +42,3 @@ class Order {
         std::optional<Price> price_;
         Quantity quantity_;
 };
-

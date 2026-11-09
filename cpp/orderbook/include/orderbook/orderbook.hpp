@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <utility>
 #include <vector>
 #include "book_types.hpp"
@@ -13,17 +14,19 @@ public:
         auto it = orders_.find(id);
         if (it == orders_.end()) return nullptr;
         return &*(it->second.it);
-    } 
+    } // be mindful that if used, then we call cancel(), we have dangling pointer now
     
     bool orderExists(OrderID id) {
         return orders_.find(id) != orders_.end();
     }
 
-    Price bestBidPrice() {
+    std::optional<Price> bestBidPrice() {
+        if (bidBook_.empty()) return std::nullopt;
         return bidBook_.begin()->first;
     }
 
-    Price bestSellPrice() {
+    std::optional<Price> bestSellPrice() {
+        if (sellBook_.empty()) return std::nullopt;
         return sellBook_.begin()->first;
     }
 
@@ -33,7 +36,7 @@ public:
     }
 
     Order* bestSellOrder() {
-        if (bidBook_.empty()) return nullptr;
+        if (sellBook_.empty()) return nullptr;
         return &(sellBook_.begin()->second.orders.front());
     }
 
@@ -65,6 +68,7 @@ public:
                 throw std::runtime_error("Order " + std::to_string(id) + " could not get removed");
             }
             it->second.erase(loc.it);
+            if (it->second.empty()) bidBook_.erase(it);
         }
         else {
             auto it = sellBook_.find(pr);
@@ -72,6 +76,7 @@ public:
                 throw std::runtime_error("Order " + std::to_string(id) + " could not get removed");
             }
             it->second.erase(loc.it);
+            if (it->second.empty()) sellBook_.erase(it);
         }
 
         orders_.erase(id);

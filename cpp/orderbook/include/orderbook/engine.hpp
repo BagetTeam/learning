@@ -19,6 +19,7 @@ public:
                     throw std::invalid_argument("Order already exists, cannot submit an existing order");
                 }
                 match(order);
+                break;
 
             case OrderType::Limit:
                 if (oldOrder) {
@@ -26,6 +27,7 @@ public:
                 }
                 match(order);
                 addOrderToBook(order);
+                break;
 
             case (OrderType::Modify):
                 if (!oldOrder) {
@@ -34,12 +36,14 @@ public:
                 book_.removeOrder(*oldOrder);
                 match(order);
                 addOrderToBook(order);
+                break;
 
             case (OrderType::Cancel):
                 if (!oldOrder) {
                     throw std::invalid_argument("Order does not exists, cannot cancel it.");
                 }
                 book_.removeOrder(*oldOrder);
+                break;
 
             default:
                 break;
