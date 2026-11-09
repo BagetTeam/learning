@@ -3,7 +3,7 @@
 #include <array>
 #include <gtest/gtest.h>
 
-OrderBook* makeTestBook() {
+OrderBook makeTestBook() {
     OrderBook orderBook = OrderBook();
     Order* bidOrder1 = new Order(1, Side::Buy, OrderType::Limit, 100, 10);
     Order* bidOrder2 = new Order(2, Side::Buy, OrderType::Limit, 100, 20);
@@ -22,15 +22,15 @@ OrderBook* makeTestBook() {
 
     MatchingEngine engine = MatchingEngine(orderBook);
     for (Order* order : orders) {
-
+        engine.submit(*order);
     }
+    return orderBook;
 }
 
-
 TEST (AddingOrders, AddingBidOrders) {
-    OrderBook* orderBook = new OrderBook();
-    Order* newOrder = new Order(123, Side::Buy, OrderType::Limit, 100, 10);
-    orderBook->addOrder(newOrder);
+    OrderBook orderBook = makeTestBook();
+    Order newOrder = Order(123, Side::Buy, OrderType::Limit, 100, 10);
+    orderBook.addOrder(newOrder);
 }
 
 

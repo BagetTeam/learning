@@ -86,6 +86,10 @@ public:
         }
     }
 
+    ~OrderBook() {
+        // should delete all orders, clean up memory
+    }
+
 private:
     BidBook bidBook_;
     SellBook sellBook_;
