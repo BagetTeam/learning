@@ -2,6 +2,7 @@
 #include "order.hpp"
 #include "ordertype.hpp"
 #include "types.hpp"
+#include "orderbook.hpp"
 
 // matching engine determines when an incoming order can execute against them.
 class MatchingEngine {
@@ -9,25 +10,37 @@ public:
     MatchingEngine(OrderBook& book) : book_{book} {}
 
     void submit(Order order) {        
+        OrderID id = order.getOrderId();
+        Order* oldOrder = book_.getOrder(id);
+
         switch (order.getOrderType()) {
             case OrderType::Market:
+                if (oldOrder) {
+                    throw std::invalid_argument("Order already exists, cannot submit an existing order");
+                }
                 match(order);
 
             case OrderType::Limit:
+                if (oldOrder) {
+                    throw std::invalid_argument("Order already exists, cannot submit an existing order");
+                }
                 match(order);
                 addOrderToBook(order);
 
             case (OrderType::Modify):
-                if (!book_.removeOrder(&order)) {
+                if (!oldOrder) {
                     throw std::invalid_argument("Order does not exists, cannot modify it.");
                 }
+                book_.removeOrder(*oldOrder);
                 match(order);
                 addOrderToBook(order);
 
             case (OrderType::Cancel):
-                if (!book_.removeOrder(&order)) {
+                if (!oldOrder) {
                     throw std::invalid_argument("Order does not exists, cannot cancel it.");
                 }
+                book_.removeOrder(*oldOrder);
+
             default:
                 break;
         }
@@ -46,7 +59,7 @@ public:
 
             taker.removeQuantity(fill);
             maker->removeQuantity(fill);
-            if (maker->getQuantity() == 0) book_.removeOrder(maker);
+            if (maker->getQuantity() == 0) book_.removeOrder(*maker);
         }
     }
 
@@ -62,9 +75,7 @@ public:
         if (taker.getOrderType() != OrderType::Limit &&
                 taker.getOrderType() != OrderType::Modify) return;
 
-        if (!book_.addOrder(&taker)) {
-            throw std::runtime_error("Tried adding new order to orderbook, but failed.");
-        }
+        book_.addOrder(taker);
     }
 
     
