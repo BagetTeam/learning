@@ -66,6 +66,8 @@ ex. `x = 5 + 3`
 
 ## Python Virtual Machine (PVM)
 
+### Standard
+
 Huge while loop, in C (since CPython is in C), which is interpreter.
 Iteratates through bytecode instructions one by one and translate it to C instructions, interacting with operating system and RAM and execute them.
 
@@ -73,3 +75,15 @@ This loop is already compiled to machine code, so is like an executable which we
 
 Does not compile or translate the bytecode. Its interpreted!
 
+### JIT Compilers (ex. PyPy)
+
+Translates bytecode to machine code (Just-In-Time (JIT) compilation).
+PyPy watches which bytecode instructions run frequently and compiles them straight into native CPU machine code on the fly to make things run much faster.
+
+ex. 
+```py
+for i in range(1000000):
+    x = i * 2
+```
+
+Instead of interpreting `x = i * 2` 1000000 times, as we are running the code, it detects what part of the code is most frequently executed (ex. its been 1000 times we run the same thing), decides to pause, then translates it to CPU machine code. Then it runs directly onto CPU instead of PVM loop, which is so much faster.
