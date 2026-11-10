@@ -27,7 +27,7 @@ What does multithreading have anything to do with it.
 4. Thread B increments it to what it read before, so 3
 -> Should be 4
 
-However, GIL does not guarantee thread safety, only for CPU-bound tasks.
+However, GIL does not guarantee thread safety, even for CPU-bound tasks.
 
 CPU-bound:
 - Loops with million of calculation
@@ -41,7 +41,7 @@ I/O bound (wait for external thing):
 - Read/Write file
 - Waiting for network response
 
-When it's waiting and not executing python code, GIL can be released, and allow another thread to execute
+When it's waiting and not executing python bytecode, GIL can be released, and allow another thread to execute
 
 So threads share same GIL. 
 Processes don't. So true parallelism is achieved with multiprocessing instead of multithreading.
@@ -80,7 +80,7 @@ Steps | Thread 1 | Thread 2
 3 | -- | Write 6
 4 | Write 6 | --
 
-Reading and writing is not atomic, GIL allows them to take turns, just not ran at the same time. However, if no lock, even concurrent tasks can cause race conditions.
+One line could be multiple bytecode instructions (ex. Reading and Writing in our case), and they aren't atomic. GIL allows to take turns running the intructions, just not ran at the same time. However, if no lock, even concurrent tasks can cause race conditions.
 
 Fix:
 ```py
@@ -94,7 +94,7 @@ def increment():
 ```
 
 
-GIL is for object reference count, if not properly managed, interpreter could corrupt its memory management state.
+GIL is for object reference count, if not properly managed, interpreter could corrupt its internal memory management state.
 But it doesn't look at internal operations. It doesn't know that
 ```py
 if account.balance >= 100:
@@ -115,4 +115,4 @@ CPython GIL -> Permission to execute python bytecode
 
 ## Conclusion
 
-GIL protects interpreter from internal concurrency problems. We manage our program logic when dealing with threads.
+GIL protects interpreter from internal concurrency problems, mainly from CPython’s internal memory management and data structures. We manage our program logic on our own when dealing with threads.
