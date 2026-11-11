@@ -51,3 +51,7 @@ How it works:
 6. Task is scheduled to ready **queue**, and waits its turn 
 7. Continue task where it left off, but with result from the await
 *Note: It is the task's continuation callback that is stored in queue (not task object iself)*
+
+## Conclusion
+
+Asyncio schedules coroutines cooperatively using an event loop, and is especially useful for when dealing with a lot of I/O bound tasks.
