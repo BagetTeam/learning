@@ -62,8 +62,7 @@ public:
                                 fill});
 
             taker.removeQuantity(fill);
-            maker->removeQuantity(fill);
-            if (maker->getQuantity() == 0) book_.removeOrder(*maker);
+            book_.updateOrderQuantity(*maker, fill);
         }
     }
 
