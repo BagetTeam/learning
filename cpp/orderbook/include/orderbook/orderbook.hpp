@@ -68,29 +68,14 @@ public:
         orders_.insert({id, {.side=side, .price=pr, .it=loc_it}});
     }
 
-    void removeOrder(Order& order) {
-        OrderID id = order.getOrderId();
-        OrderLocation loc = orders_.find(id)->second;
-        Price pr = loc.price;
-
-        if (loc.side == Side::Buy) {
-            auto it = bidBook_.find(pr);
-            if (it == bidBook_.end()) {
-                throw std::runtime_error("Order " + std::to_string(id) + " could not get removed");
-            }
-            it->second.erase(loc.it);
-            if (it->second.empty()) bidBook_.erase(it);
-        }
-        else {
-            auto it = sellBook_.find(pr);
-            if (it == sellBook_.end()) {
-                throw std::runtime_error("Order " + std::to_string(id) + " could not get removed");
-            }
-            it->second.erase(loc.it);
-            if (it->second.empty()) sellBook_.erase(it);
-        }
-
-        orders_.erase(id);
+    void removeOrder(OrderID id) {
+        auto locIt = orders_.find(id);
+        if (locIt == orders_.end()) 
+            throw std::invalid_argument("Order " + std::to_string(id) + " does not exist");
+        
+        if (locIt->second.side == Side::Buy)
+            removeInBook(bidBook_, locIt, id);
+        else removeInBook(sellBook_, locIt, id);
     }
 
     void updateOrderQuantity(OrderID id, Quantity remove) {
@@ -143,6 +128,16 @@ private:
         it->second.erase(loc.it);
         if (it->second.empty()) book.erase(it);
         orders_.erase(locIt);
+    }
+
+    template<typename Book>
+    void removeInBook(Book& book, std::unordered_map<OrderID, OrderLocation>::iterator locIt, OrderID id) {
+        auto &loc = locIt->second;
+        auto it = book.find(locIt->second.price);
+        if (it == book.end()) {
+            throw std::runtime_error("Order " + std::to_string(id) + " could not get removed");
+        }
+        orderDelete(book, it, locIt);
     }
 
     template<typename Book>
