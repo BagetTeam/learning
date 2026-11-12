@@ -33,7 +33,7 @@ public:
                 if (!oldOrder) {
                     throw std::invalid_argument("Order does not exists, cannot modify it.");
                 }
-                book_.removeOrder(*oldOrder);
+                book_.removeOrder(id);
                 match(order);
                 addOrderToBook(order);
                 break;
@@ -42,7 +42,7 @@ public:
                 if (!oldOrder) {
                     throw std::invalid_argument("Order does not exists, cannot cancel it.");
                 }
-                book_.removeOrder(*oldOrder);
+                book_.removeOrder(id);
                 break;
 
             default:
@@ -62,7 +62,7 @@ public:
                                 fill});
 
             taker.removeQuantity(fill);
-            book_.updateOrderQuantity(*maker, fill);
+            book_.updateOrderQuantity(maker->getOrderId(), fill);
         }
     }
 
