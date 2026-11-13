@@ -31,6 +31,9 @@ DD = 0x5E         // 1011110
 EE = 0x79         // 1111001
 FF = 0x71         // 1110001
 
+NONE = 0x00
+FULL = 0x7F
+
 
 _start:
     MOV A1, #(HEX0 | HEX1 | HEX3 | HEX5)
@@ -58,13 +61,27 @@ write_LEDs_ASM:
 
 // pre-- A1: indices of HEX
 HEX_clear_ASM:
+    mov A2, #NONE
+    b HEX_apply_pattern
+
+
+// pre-- A1: indices of HEX
+HEX_flood_ASM:
+
+
+HEX_write_ASM:
+
+
+// pre-- A1: indices of HEX
+// pre-- A2: pattern to apply
+HEX_apply_pattern:
     push {V1, V2, V3}
     LDR V1, =HEX_ADDR_0_3
     mov V2, #0 // hex0
 loop:
     ands V3, A1, #1
-    bne clear
-finish_clear:
+    bne write
+finish_write:
     add V2, V2, #8
     cmp V2, #32
     beq switch
@@ -76,56 +93,21 @@ end_loop:
     pop {V1, V2, V3}
     bx LR
 
-clear:
+write:
     mov V3, #0xFF
     lsl V3, V3, V2
-
-    LDR A2, [V1]
-    bic A2, A2, V3
-    str A2, [V1]
-    b finish_clear
+    // clear
+    LDR A3, [V1]
+    bic A3, A3, V3
+    // write
+    lsl V3, A2, V2
+    orr A3, A3, V3
+    // save
+    str A3, [V1]
+    b finish_write
 
 switch:
     // switch from 0-3 to 4-5
     mov V2, #0
     LDR V1, =HEX_ADDR_4_5
     b finish_switch
-
-
-
-// pre-- A1: indices of HEX
-HEX_flood_ASM:
-        push {V1, V2, V3}
-    LDR V1, =HEX_ADDR_0_3
-    mov V2, #0 // hex0
-loop:
-    ands V3, A1, #1
-    bne clear
-finish_clear:
-    add V2, V2, #8
-    cmp V2, #32
-    beq switch
-finish_switch:
-    lsr A1, #1
-    cmp A1, #0
-    bne loop
-end_loop:
-    pop {V1, V2, V3}
-    bx LR
-
-clear:
-    mov V3, #0xFF
-    lsl V3, V3, V2
-
-    LDR A2, [V1]
-    bic A2, A2, V3
-    str A2, [V1]
-    b finish_clear
-
-switch:
-    // switch from 0-3 to 4-5
-    mov V2, #0
-    LDR V1, =HEX_ADDR_4_5
-    b finish_switch
-
-HEX_write_ASM:
