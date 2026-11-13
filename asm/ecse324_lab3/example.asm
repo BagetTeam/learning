@@ -1,5 +1,3 @@
-.global _start
-
 .equ SW_ADDR, 0xFF200040
 .equ LED_ADDR, 0xFF200000
 .equ HEX_ADDR_0_3, 0xFF200020
@@ -34,10 +32,19 @@ FF = 0x71         // 1110001
 NONE = 0x00
 FULL = 0x7F
 
+.data
+HEX_patterns:
+    .byte ZERO, ONE, TWO, THREE
+    .byte FOUR, FIVE, SIX, SEVEN
+    .byte EIGHT, NINE, AA, BB
+    .byte CC, DD, EE, FF
+.text
+
+.global _start
 
 _start:
     MOV A1, #(HEX0 | HEX1 | HEX3 | HEX5)
-    bl HEX_clear_ASM
+    bl HEX_flood_ASM
 
 stop:
     b stop
@@ -67,9 +74,15 @@ HEX_clear_ASM:
 
 // pre-- A1: indices of HEX
 HEX_flood_ASM:
+    mov A2, #FULL
+    b HEX_apply_pattern
 
-
+// pre-- A1: indices of HEX
+// pre-- A2: pattern to match (0-9 or a-f)
 HEX_write_ASM:
+    ldr A3, =HEX_patterns
+    ldrb A2, [A3, A2]
+    b HEX_apply_pattern
 
 
 // pre-- A1: indices of HEX
