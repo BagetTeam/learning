@@ -24,6 +24,12 @@ SIX   = 0x7D    // 1111101
 SEVEN = 0x07    // 0000111
 EIGHT = 0x7F    // 1111111
 NINE  = 0x6F    // 1101111
+AA = 0x77         // 1110111
+BB = 0x7C         // 1111100
+CC = 0x39         // 0111001
+DD = 0x5E         // 1011110
+EE = 0x79         // 1111001
+FF = 0x71         // 1110001
 
 
 _start:
@@ -50,7 +56,7 @@ write_LEDs_ASM:
     BX LR
 
 
-// pre-- A1: index of HEX
+// pre-- A1: indices of HEX
 HEX_clear_ASM:
     push {V1, V2, V3}
     LDR V1, =HEX_ADDR_0_3
@@ -85,7 +91,41 @@ switch:
     LDR V1, =HEX_ADDR_4_5
     b finish_switch
 
-HEX_flood_ASM:
 
+
+// pre-- A1: indices of HEX
+HEX_flood_ASM:
+        push {V1, V2, V3}
+    LDR V1, =HEX_ADDR_0_3
+    mov V2, #0 // hex0
+loop:
+    ands V3, A1, #1
+    bne clear
+finish_clear:
+    add V2, V2, #8
+    cmp V2, #32
+    beq switch
+finish_switch:
+    lsr A1, #1
+    cmp A1, #0
+    bne loop
+end_loop:
+    pop {V1, V2, V3}
+    bx LR
+
+clear:
+    mov V3, #0xFF
+    lsl V3, V3, V2
+
+    LDR A2, [V1]
+    bic A2, A2, V3
+    str A2, [V1]
+    b finish_clear
+
+switch:
+    // switch from 0-3 to 4-5
+    mov V2, #0
+    LDR V1, =HEX_ADDR_4_5
+    b finish_switch
 
 HEX_write_ASM:
