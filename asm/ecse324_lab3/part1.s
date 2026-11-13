@@ -1,4 +1,9 @@
-// 
+// LED
+
+.equ SW_ADDR, 0xFF200040
+.equ LED_ADDR, 0xFF200000
+
+// HEX
 .equ HEX_ADDR_0_3, 0xFF200020
 .equ HEX_ADDR_4_5, 0xFF200030
 
@@ -17,6 +22,17 @@ HEX_CODES:
 
 NONE = 0x00
 
+// PB
+
+PB0 = 0x00000001
+PB1 = 0x00000002
+PB2 = 0x00000004
+PB3 = 0x00000008
+
+.equ DATA_REG, 0xFF200050
+.equ INTERRUPT_REG, 0xFF200058
+.equ EDGECAPTURE_REG, 0xFF20005C
+
 
 .global _start
 
@@ -28,86 +44,204 @@ stop:
     b stop
 
 
+big_loop:
 
+// PB Logic
+
+
+
+
+// pre-- A1: rotation count
+LED_display_rotation:
+    push {LR, V1, V2}
+    mov V1, A1
+    mov V2, #0
+dr_loop:
+    cmp V1, #1
+    mov A1, V2
+    blne write_LEDs_ASM
+
+    lsr V1, V1, #1
+    add V2, V2, #1
+    cmp V1, #0
+    bne dr_loop
+
+    pop {LR, V1, V2}
+    bx LR
+
+// post- A1: slide switch state
+read_slider_switches_ASM:
+    LDR A2, =SW_ADDR // load the address of slider switch state
+    LDR A1, [A2] // read slider switch state
+    BX LR
+    
+// writes the state of LEDs (On/Off) in A1 to the LEDs' control register
+// pre-- A1: data to write to LED state
+write_LEDs_ASM:
+    LDR A2, =LED_ADDR // load the address of the LEDs' state
+    STR A1, [A2] // update LED state with the contents of A1
+    BX LR
+
+
+// pre-- A1: numbers of right shifting
 HEX_write_c0ffee:
-    push {LR}
+    push {LR, V1}
+    mov V1, A1
+
     mov A1, #(HEX0 | HEX1)
+    mov A2, V1
+    bl HEX_index_shifting
     mov A2, #0xe
     bl HEX_write_ASM
+
     mov A1, #(HEX2 | HEX3)
+    mov A2, V1
+    bl HEX_index_shifting
     mov A2, #0xf
     bl HEX_write_ASM
+
     mov A1, #HEX4
+    mov A2, V1
+    bl HEX_index_shifting
     mov A2, #0x0
     bl HEX_write_ASM
+
     mov A1, #HEX5
+    mov A2, V1
+    bl HEX_index_shifting
     mov A2, #0xc
     bl HEX_write_ASM
-    pop {LR}
+
+    pop {LR, V1}
     bx LR
 
 HEX_write_cafe5:
-    push {LR}
+    push {LR, V1}
+    mov V1, A1
+
     mov A1, #HEX0
-    mov A2, #NONE
-    bl HEX_apply_pattern
+    mov A2, V1
+    bl HEX_index_shifting
+    bl HEX_clear_ASM
+
     mov A1, #HEX1
+    mov A2, V1
+    bl HEX_index_shifting
     mov A2, #0x5
     bl HEX_write_ASM
+
     mov A1, #HEX2
+    mov A2, V1
+    bl HEX_index_shifting
     mov A2, #0xe
     bl HEX_write_ASM
+
     mov A1, #HEX3
+    mov A2, V1
+    bl HEX_index_shifting
     mov A2, #0xf
     bl HEX_write_ASM
+
     mov A1, #HEX4
+    mov A2, V1
+    bl HEX_index_shifting
     mov A2, #0xa
     bl HEX_write_ASM
+
     mov A1, #HEX5
+    mov A2, V1
+    bl HEX_index_shifting
     mov A2, #0xc
     bl HEX_write_ASM
-    pop {LR}
+
+    pop {LR, V1}
     bx LR
 
 HEX_write_cab5:
-    push {LR}
+    push {LR, V1}
+    mov V1, A1
+
     mov A1, #(HEX0 | HEX1)
-    mov A2, #NONE
-    bl HEX_apply_pattern
+    mov A2, V1
+    bl HEX_index_shifting
+    bl HEX_clear_ASM
+
     mov A1, #HEX2
+    mov A2, V1
+    bl HEX_index_shifting
     mov A2, #0x5
     bl HEX_write_ASM
+
     mov A1, #HEX3
+    mov A2, V1
+    bl HEX_index_shifting
     mov A2, #0xb
     bl HEX_write_ASM
+
     mov A1, #HEX4
+    mov A2, V1
+    bl HEX_index_shifting
     mov A2, #0xa
     bl HEX_write_ASM
+
     mov A1, #HEX5
+    mov A2, V1
+    bl HEX_index_shifting
     mov A2, #0xc
     bl HEX_write_ASM
-    pop {LR}
+
+    pop {LR, V1}
     bx LR
 
 HEX_write_ace:
-    push {LR}
+    push {LR, V1}
+    mov V1, A1
     mov A1, #(HEX0 | HEX1 | HEX2)
-    mov A2, #NONE
-    bl HEX_apply_pattern
+    mov A2, V1
+    bl HEX_index_shifting
+    bl HEX_clear_ASM
+
     mov A1, #HEX3
+    mov A2, V1
+    bl HEX_index_shifting
     mov A2, #0xe
     bl HEX_write_ASM
+    
     mov A1, #HEX4
+    mov A2, V1
+    bl HEX_index_shifting
     mov A2, #0xc
     bl HEX_write_ASM
+    
     mov A1, #HEX5
+    mov A2, V1
+    bl HEX_index_shifting
     mov A2, #0xa
     bl HEX_write_ASM
-    pop {LR}
+    
+    pop {LR, V1}
+    bx LR
+
+// pre-- A1: index of HEX
+// pre-- A2: right shifting number (0-5)
+// post-- A1: index of HEX after shift
+HEX_index_shifting:
+    and A1, A1, #0x3F
+    cmp A2, #0             // Check if shift amount is 0 (or negative)
+    ble shift_done
+index_shift:
+    lsrs A1, A1, #1
+    addcs A1, A1, #0x20
+    subs A2, A2, #1
+    bne index_shift
+shift_done:
     bx LR
 
 
-
+// pre-- A1: indices of HEX
+HEX_clear_ASM:
+    mov A2, #NONE
+    b HEX_apply_pattern
 
 // pre-- A1: indices of HEX
 // pre-- A2: pattern to match (0-9 or a-f)
