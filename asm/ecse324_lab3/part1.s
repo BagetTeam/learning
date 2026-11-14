@@ -173,7 +173,8 @@ write_LEDs_ASM:
 read_slider_switches_ASM:
     LDR A2, =SW_ADDR // load the address of slider switch state
     LDR A1, [A2] // read slider switch state
-    and A1, A1, #0x3FF
+    LDR A2, =0x3FF
+    and A1, A1, A2
     BX LR
 
 
