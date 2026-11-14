@@ -37,56 +37,81 @@ PB3 = 0x00000008
 .global _start
 
 _start:
-    MOV A1, #(HEX0 | HEX1 | HEX3 | HEX5)
+    // setup
+    mov A1, #0
+    bl write_LEDs_ASM
+    bl PB_clear_edgecp_ASM
+    MOV A1, #0
     bl HEX_write_c0ffee
+
+    bl compute
 
 stop:
     b stop
 
 
 compute:
-    push {LR, V1, V2, V3}
+    push {LR, V1, V2, V3, V4}
     mov V1, #0  // shift total count
     mov V2, #0  // right shifting count
     mov V3, #-1 // -1: left shiting, 1: right shifting
     mov V4, #0  // current slider
 big_loop:
+   // LED logic
+    mov A1, V1
+    bl write_LEDs_ASM
+    
+    // slider logic (count and messages)
+    bl read_slider_switches_ASM
+    cmp A1, V4 // change message -> clear count and rotation
+    movne V1, #0 
+    movne V2, #0
+    mov V4, A1
+
+    mov A1, V2
+    cmp V4, #0x00
+    bleq HEX_write_c0ffee
+    beq check_rotation_pb
+    cmp V4, #0x01
+    bleq HEX_write_cafe5
+    beq check_rotation_pb
+    cmp V4, #0x02
+    bleq HEX_write_cab5
+    beq check_rotation_pb
+    cmp V4, #0x04
+    bleq HEX_write_ace
+    beq check_rotation_pb
+    bl HEX_write_blank // dont match any of the messages
+    b rotation_logic_done
+
+check_rotation_pb:
     // check PB edge cap
     mov A1, #PB2 // switch left -> right -> left
     bl PB_edgecp_is_pressed_ASM
     cmp A1, #1
-    rsbne V3, V3, #0 // reverse sign
+    rsbeq V3, V3, #0 // reverse sign
 
     mov A1, #PB3 // shift 
     bl PB_edgecp_is_pressed_ASM
     cmp A1, #1
-    bne add_shift
+    addeq V1, V1, #1
+    beq add_shift
 done_add_shift:
-    addne V1, V1, #1
+    cmp V1, #1024
+    subeq V1, V1, #1
+rotation_logic_done:
+    bl PB_clear_edgecp_ASM
 
-    // slider logic (count and messages)
-    b read_slider_switches_ASM
-    cmp A1, V4
-    moveq V1, #0 // clear count
-    moveq V2, #0
-    mov V4, A1
-
-    
-
-
-
-done_slider_check:
-
-
-    pop {LR, V1, V2, V3}
+    b big_loop
+    pop {LR, V1, V2, V3, V4}
     bx LR
 
 add_shift:
     add V2, V2, V3
     cmp V2, #6
-    movne V2, #0
+    moveq V2, #0
     cmp V2, #-1
-    movne V2, #5
+    moveq V2, #5
     b done_add_shift
 
 
@@ -126,27 +151,7 @@ PB_clear_edgecp_ASM:
 
 
 // LEDS logic
-
-// pre-- A1: rotation count
-LED_display_rotation:
-    push {LR, V1, V2}
-    mov V1, A1
-    mov V2, #0
-dr_loop:
-    cmp V1, #1
-    mov A1, V2
-    blne write_LEDs_ASM
-
-    lsr V1, V1, #1
-    add V2, V2, #1
-    cmp V1, #0
-    bne dr_loop
-
-    pop {LR, V1, V2}
-    bx LR
-
     
-// writes the state of LEDs (On/Off) in A1 to the LEDs' control register
 // pre-- A1: data to write to LED state
 write_LEDs_ASM:
     LDR A2, =LED_ADDR // load the address of the LEDs' state
@@ -160,6 +165,7 @@ write_LEDs_ASM:
 read_slider_switches_ASM:
     LDR A2, =SW_ADDR // load the address of slider switch state
     LDR A1, [A2] // read slider switch state
+    and A1, A1, #0x3FF
     BX LR
 
 
