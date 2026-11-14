@@ -70,17 +70,25 @@ big_loop:
 
     mov A1, V2
     cmp V4, #0x00
-    bleq HEX_write_c0ffee
-    beq check_rotation_pb
+    bne check_cafe5
+    bl HEX_write_c0ffee
+    b check_rotation_pb
+check_cafe5:
     cmp V4, #0x01
-    bleq HEX_write_cafe5
-    beq check_rotation_pb
+    bne check_cab5
+    bl HEX_write_cafe5
+    b check_rotation_pb
+check_cab5:
     cmp V4, #0x02
-    bleq HEX_write_cab5
-    beq check_rotation_pb
+    bne check_ace
+    bl HEX_write_cab5
+    b check_rotation_pb
+check_ace:
     cmp V4, #0x04
-    bleq HEX_write_ace
-    beq check_rotation_pb
+    bne make_blank
+    bl HEX_write_ace
+    b check_rotation_pb
+make_blank:
     bl HEX_write_blank // dont match any of the messages
     b rotation_logic_done
 
