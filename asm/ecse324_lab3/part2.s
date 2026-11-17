@@ -8,10 +8,21 @@ B SERVICE_ABT_DATA // aborted data vector
 B SERVICE_IRQ // IRQ interrupt vector
 B SERVICE_FIQ // FIQ interrupt vector
 
+.data
+.align 2
+PB_int_flag:
+    .word 0
+tim_int_flag:
+    .word 0
+
+.section .rodata
 .equ TIMER_load, 0xFFFEC600
 .equ TIMER_counter, 0xFFFEC604
 .equ TIMER_control, 0xFFFEC608
 .equ TIMER_interr, 0xFFFEC60C
+.equ TIMER_DEFAULT_LOAD, 50000000 // 200 MHz * 0.25 s
+.equ INTERRUPT_REG, 0xFF200058
+.equ EDGECAPTURE_REG, 0xFF20005C
 
 // HEX
 .equ HEX_ADDR_0_3, 0xFF200020
@@ -25,6 +36,7 @@ HEX4 = 0x00000010
 HEX5 = 0x00000020
 
 BLANK = 0x10
+NONE = 0x00
 
 HEX_CODES:
 .byte 0b00111111, 0b00000110, 0b01011011, 0b01001111 // 0, 1, 2, 3
@@ -85,31 +97,39 @@ _start:
     MOV R1, #0b11010011 // interrupts masked, MODE = SVC
     MSR CPSR, R1 // change to supervisor mode
     LDR SP, =0x3FFFFFFF - 3 // set SVC stack to top of DDR3 memory
-    BL CONFIG_GIC // configure the ARM GIC
-    // NOTE: write to the pushbutton KEY interrupt mask register
-    // Or, you can call enable_PB_INT_ASM subroutine from previous task
-    // to enable interrupt for ARM A9 private timer,
-    // use ARM_TIM_config_ASM subroutine
-    LDR R0, =0xFF200050 // pushbutton KEY base address
-    MOV R1, #0xF // set interrupt mask bits
-    STR R1, [R0, #0x8] // interrupt mask register (base + 8)
-    // enable IRQ interrupts in the processor
-    MOV R0, #0b01010011 // IRQ unmasked, MODE = SVC
-    MSR CPSR_c, R0
 
-    // clear any prev timeouts
+    // Stop the timer and clear stale events while CPU IRQs are masked.
     MOV A1, #0
     MOV A2, #0
     BL ARM_TIM_config_ASM
     BL ARM_TIM_clear_INT_ASM
 
-    // enable pb interrupts
-    mov A1, #0b1111
-    bl enable_PB_INT_ASM
+    MOV A1, #0xF
+    BL disable_PB_INT_ASM
+    LDR A1, =EDGECAPTURE_REG
+    MOV A2, #0xF
+    STR A2, [A1]          // clear all stale pushbutton edges
 
-    // set timer config
+    MOV A2, #0
+    LDR A1, =PB_int_flag
+    STR A2, [A1]
+    LDR A1, =tim_int_flag
+    STR A2, [A1]
+
+    BL CONFIG_GIC        // enable interrupt IDs 29 and 73
+
+    MOV A1, #0xF
+    BL enable_PB_INT_ASM
+
+    // Reload A1 explicitly: the calls above overwrite argument registers.
+    LDR A1, =TIMER_DEFAULT_LOAD
     MOV A2, #0b111          // Prescaler=0, IRQ=1, auto-reload=1, enable=1
-    bl ARM_TIM_config_ASM
+    BL ARM_TIM_config_ASM
+
+    // Unmask CPU IRQs only after all initialization writes have completed.
+    DSB SY
+    MOV R0, #0b01010011 // IRQ unmasked, FIQ masked, MODE = SVC
+    MSR CPSR_c, R0
 
 IDLE:
     B IDLE // This is where you write your main program task(s
@@ -360,6 +380,10 @@ CONFIG_GIC:
     MOV R1, #1              // this field is a bit-mask; bit 0 targets cpu0
     BL CONFIG_INTERRUPT
 
+    MOV R0, #29             // ARM A9 private timer (banked for this CPU)
+    MOV R1, #1
+    BL CONFIG_INTERRUPT
+
     /* configure the GIC CPU Interface */
     LDR R0, =0xFFFEC100     // base address of CPU Interface
     /* Set Interrupt Priority Mask Register (ICCPMR) */
@@ -436,19 +460,27 @@ SERVICE_IRQ:
     /* Read the ICCIAR from the CPU Interface */
     LDR R4, =0xFFFEC100
     LDR R5, [R4, #0x0C]     // read from ICCIAR
-    /* NOTE: Check which interrupt has occurred (check interrupt IDs)
-     * Then call the corresponding ISR
-     * If the ID is not recognized, branch to UNEXPECTED
-     * See the assembly example provided in the DE1-SoC Computer Manual
-     * on page 46 */
+    UBFX R0, R5, #0, #10    // interrupt ID; retain full ICCIAR token in R5
+    CMP R0, #29
+    BEQ Timer_check
 Pushbutton_check:
-    CMP R5, #73
+    CMP R0, #73
+    BEQ Handle_pushbutton
+    LDR R1, =1023           // spurious IRQ: no interrupt to acknowledge
+    CMP R0, R1
+    BEQ RETURN_IRQ
 UNEXPECTED:
-    BNE UNEXPECTED          // if not recognized, stop here
+    B UNEXPECTED           // unknown interrupt ID: stop here for debugging
+Handle_pushbutton:
     BL KEY_ISR
+    B EXIT_IRQ
+Timer_check:
+    BL ARM_TIM_ISR
 EXIT_IRQ:
     /* Write to the End of Interrupt Register (ICCEOIR) */
+    DSB SY                 // finish clearing the peripheral before EOI
     STR R5, [R4, #0x10]     // write to ICCEOIR
+RETURN_IRQ:
     POP {R0-R7, LR}
     SUBS PC, LR, #4
 
@@ -459,34 +491,17 @@ SERVICE_FIQ:
 
 /*--- KEY interrupt service routine -------------------------------*/
 KEY_ISR:
-    LDR R0, =0xFF200050     // base address of pushbutton KEY port
-    LDR R1, [R0, #0xC]      // read edge capture register
-    MOV R2, #0xF
-    STR R2, [R0, #0xC]      // clear the interrupt
-    LDR R0, =0xFF200020     // base address of HEX display
-CHECK_KEY0:
-    MOV R3, #0x1
-    ANDS R3, R3, R1         // check for KEY0
-    BEQ CHECK_KEY1
-    MOV R2, #0b00111111
-    STR R2, [R0]            // display "0"
-    B END_KEY_ISR
-CHECK_KEY1:
-    MOV R3, #0x2
-    ANDS R3, R3, R1         // check for KEY1
-    BEQ CHECK_KEY2
-    MOV R2, #0b00000110
-    STR R2, [R0]            // display "1"
-    B END_KEY_ISR
-CHECK_KEY2:
-    MOV R3, #0x4
-    ANDS R3, R3, R1         // check for KEY2
-    BEQ IS_KEY3
-    MOV R2, #0b01011011
-    STR R2, [R0]            // display "2"
-    B END_KEY_ISR
-IS_KEY3:
-    MOV R2, #0b01001111
-    STR R2, [R0]            // display "3"
-END_KEY_ISR:
+    LDR R0, =EDGECAPTURE_REG
+    LDR R1, [R0]           // one bit per pressed-and-released pushbutton
+    AND R1, R1, #0xF
+    LDR R2, =PB_int_flag
+    STR R1, [R2]           // IDLE will interpret the captured button mask
+    STR R1, [R0]           // write captured bits back to clear the interrupt
     BX LR
+
+/*--- ARM A9 private timer interrupt service routine ---------------*/
+ARM_TIM_ISR:
+    LDR R0, =tim_int_flag
+    MOV R1, #1
+    STR R1, [R0]           // IDLE will consume this pending timer event
+    B ARM_TIM_clear_INT_ASM // clear F and return using the caller's LR
