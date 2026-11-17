@@ -104,192 +104,192 @@ _start:
     LDR SP, =0x3FFFFFFF - 3 // set SVC stack to top of DDR3 memory
 
     // Stop the timer and clear stale events while CPU IRQs are masked.
-    MOV A1, #0
-    MOV A2, #0
-    BL ARM_TIM_config_ASM
-    BL ARM_TIM_clear_INT_ASM
+    mov A1, #0
+    mov A2, #0
+    bl ARM_TIM_config_ASM
+    bl ARM_TIM_clear_INT_ASM
 
-    MOV A1, #0xF
-    BL disable_PB_INT_ASM
-    LDR A1, =EDGECAPTURE_REG
-    MOV A2, #0xF
-    STR A2, [A1]          // clear all stale pushbutton edges
+    mov A1, #0xF
+    bl disable_PB_INT_ASM
+    ldr A1, =EDGECAPTURE_REG
+    mov A2, #0xF
+    str A2, [A1]          // clear all stale pushbutton edges
 
-    MOV A2, #0
-    LDR A1, =PB_int_flag
-    STR A2, [A1]
-    LDR A1, =tim_int_flag
-    STR A2, [A1]
+    mov A2, #0
+    ldr A1, =PB_int_flag
+    str A2, [A1]
+    ldr A1, =tim_int_flag
+    str A2, [A1]
 
     BL CONFIG_GIC        // enable interrupt IDs 29 and 73
 
-    MOV A1, #0xF
-    BL enable_PB_INT_ASM
+    mov A1, #0xF
+    bl enable_PB_INT_ASM
 
     // Reload A1 explicitly: the calls above overwrite argument registers.
-    LDR A1, =TIMER_DEFAULT_LOAD
-    MOV A2, #0b111          // Prescaler=0, IRQ=1, auto-reload=1, enable=1
-    BL ARM_TIM_config_ASM
+    ldr A1, =TIMER_DEFAULT_LOAD
+    mov A2, #0b111          // Prescaler=0, IRQ=1, auto-reload=1, enable=1
+    bl ARM_TIM_config_ASM
 
     // Unmask CPU IRQs only after all initialization writes have completed.
-    DSB SY
+    dsb SY
     MOV R0, #0b01010011 // IRQ unmasked, FIQ masked, MODE = SVC
     MSR CPSR_c, R0
 
 IDLE:
     // Persistent state (the drivers and IRQ handlers preserve these registers).
-    MOV V1, #0            // rotation: positive = right, negative = left
-    MOV V2, #-1           // direction: initially left
-    MOV V3, #2            // speed index 0..4: 1, 1/2, 1/4, 1/8, 1/16 s
-    MOV V4, #0            // paused: 0 = running, 1 = paused
-    MOV V5, #-1           // previous switches; force initial message selection
-    LDR V6, =COFFEE       // current length-prefixed message
+    mov V1, #0            // rotation: positive = right, negative = left
+    mov V2, #-1           // direction: initially left
+    mov V3, #2            // speed index 0..4: 1, 1/2, 1/4, 1/8, 1/16 s
+    mov V4, #0            // paused: 0 = running, 1 = paused
+    mov V5, #-1           // previous switches; force initial message selection
+    ldr V6, =COFFEE       // current length-prefixed message
 
 IDLE_loop:
     // Atomically take and clear both flags so an IRQ cannot be lost between
     // reading a flag and clearing it. V7 = timer event, V8 = button mask.
-    CPSID I
-    MOV A2, #0
-    LDR A1, =PB_int_flag
-    LDR V8, [A1]
-    STR A2, [A1]
-    LDR A1, =tim_int_flag
-    LDR V7, [A1]
-    STR A2, [A1]
-    CPSIE I
+    cpsid I
+    mov A2, #0
+    ldr A1, =PB_int_flag
+    ldr V8, [A1]
+    str A2, [A1]
+    ldr A1, =tim_int_flag
+    ldr V7, [A1]
+    str A2, [A1]
+    cpsie I
 
-    BL read_slider_switches_ASM
-    CMP A1, #0x00
-    LDREQ V6, =COFFEE
-    BEQ IDLE_valid_message
-    CMP A1, #0x01
-    LDREQ V6, =CAFES
-    BEQ IDLE_valid_message
-    CMP A1, #0x02
-    LDREQ V6, =CABS
-    BEQ IDLE_valid_message
-    CMP A1, #0x04
-    LDREQ V6, =ACE
-    BEQ IDLE_valid_message
-    CMP A1, #0x08
-    LDREQ V6, =MSG_8
-    BEQ IDLE_valid_message
-    CMP A1, #0x10
-    LDREQ V6, =MSG_10
-    BEQ IDLE_valid_message
-    LDR V6, =MSG_BLANK     // invalid switches only blank the HEX display
-    B IDLE_message_ready
+    bl read_slider_switches_ASM
+    cmp A1, #0x00
+    ldreq V6, =COFFEE
+    beq IDLE_valid_message
+    cmp A1, #0x01
+    ldreq V6, =CAFES
+    beq IDLE_valid_message
+    cmp A1, #0x02
+    ldreq V6, =CABS
+    beq IDLE_valid_message
+    cmp A1, #0x04
+    ldreq V6, =ACE
+    beq IDLE_valid_message
+    cmp A1, #0x08
+    ldreq V6, =MSG_8
+    beq IDLE_valid_message
+    cmp A1, #0x10
+    ldreq V6, =MSG_10
+    beq IDLE_valid_message
+    ldr V6, =MSG_BLANK     // invalid switches only blank the HEX display
+    b IDLE_message_ready
 
 IDLE_valid_message:
-    CMP A1, V5
-    MOVNE V1, #0          // a newly selected message starts left-justified
-    MOVNE V7, #0          // do not immediately shift it with an old timer event
+    cmp A1, V5
+    movne V1, #0          // a newly selected message starts left-justified
+    movne V7, #0          // do not immediately shift it with an old timer event
 IDLE_message_ready:
-    MOV V5, A1
+    mov V5, A1
 
     // PB3 takes priority if several buttons arrive together. Discard any
     // simultaneous timer tick when pausing/resuming; do not jump on resume.
-    TST V8, #0x8
-    BNE IDLE_toggle_pause
-    CMP V4, #0
-    BNE IDLE_display      // while paused, ignore PB0-2 and timer events
+    tst V8, #0x8
+    bne IDLE_toggle_pause
+    cmp V4, #0
+    bne IDLE_display      // while paused, ignore PB0-2 and timer events
 
-    TST V8, #0x4
-    RSBNE V2, V2, #0      // PB2 reverses direction
+    tst V8, #0x4
+    rsbne V2, V2, #0      // PB2 reverses direction
 
-    MOV A4, V3            // remember the old speed
-    AND A1, V8, #0x3
-    CMP A1, #0x1          // PB0 alone: slower, down to index 0
-    BNE IDLE_check_faster
-    CMP V3, #0
-    SUBGT V3, V3, #1
+    mov A4, V3            // remember the old speed
+    and A1, V8, #0x3
+    cmp A1, #0x1          // PB0 alone: slower, down to index 0
+    bne IDLE_check_faster
+    cmp V3, #0
+    subgt V3, V3, #1
 IDLE_check_faster:
-    CMP A1, #0x2          // PB1 alone: faster, up to index 4
-    BNE IDLE_speed_ready
-    CMP V3, #4
-    ADDLT V3, V3, #1
+    cmp A1, #0x2          // PB1 alone: faster, up to index 4
+    bne IDLE_speed_ready
+    cmp V3, #4
+    addlt V3, V3, #1
 IDLE_speed_ready:
-    CMP V3, A4
-    BEQ IDLE_check_timer
-    BL IDLE_update_timer
-    MOV V7, #0            // the new speed starts with a fresh timer interval
+    cmp V3, A4
+    beq IDLE_check_timer
+    bl IDLE_update_timer
+    mov V7, #0            // the new speed starts with a fresh timer interval
 
 IDLE_check_timer:
-    CMP V7, #0
-    BEQ IDLE_display
-    ADD V1, V1, V2        // move exactly one position per timer event
-    LDRB A1, [V6]         // wrap over the entire message, including blanks
+    cmp V7, #0
+    beq IDLE_display
+    add V1, V1, V2        // move exactly one position per timer event
+    ldrb A1, [V6]         // wrap over the entire message, including blanks
 IDLE_wrap_left:
-    CMP V1, #0
-    ADDLT V1, V1, A1
-    BLT IDLE_wrap_left
+    cmp V1, #0
+    addlt V1, V1, A1
+    blt IDLE_wrap_left
 IDLE_wrap_right:
-    CMP V1, A1
-    SUBGE V1, V1, A1
-    BGE IDLE_wrap_right
+    cmp V1, A1
+    subge V1, V1, A1
+    bge IDLE_wrap_right
 
 IDLE_display:
-    MOV A1, V6
-    MOV A2, V1
-    BL write_msg
+    mov A1, V6
+    mov A2, V1
+    bl write_msg
 
     // Speed index n lights the lowest 2*(n+1) LEDs; pause turns them off.
-    ADD A2, V3, #1
-    LSL A2, A2, #1
-    MOV A1, #1
-    LSL A1, A1, A2
-    SUB A1, A1, #1
-    CMP V4, #0
-    MOVNE A1, #0
-    BL write_LEDs_ASM
-    B IDLE_loop
+    add A2, V3, #1
+    lsl A2, A2, #1
+    mov A1, #1
+    lsl A1, A1, A2
+    sub A1, A1, #1
+    cmp V4, #0
+    movne A1, #0
+    bl write_LEDs_ASM
+    b IDLE_loop
 
 IDLE_toggle_pause:
-    EOR V4, V4, #1
-    CPSID I
-    LDR A3, =TIMER_control
-    LDR A2, [A3]
-    CMP V4, #0
-    BICNE A2, A2, #1      // pause the counter without reloading its value
-    ORREQ A2, A2, #1      // resume with the remaining count and same speed
-    STR A2, [A3]
-    BL ARM_TIM_clear_INT_ASM
-    LDR A1, =tim_int_flag
-    MOV A2, #0
-    STR A2, [A1]
-    DSB SY
-    CPSIE I
-    B IDLE_display
+    eor V4, V4, #1
+    cpsid I
+    ldr A3, =TIMER_control
+    ldr A2, [A3]
+    cmp V4, #0
+    bicne A2, A2, #1      // pause the counter without reloading its value
+    orreq A2, A2, #1      // resume with the remaining count and same speed
+    str A2, [A3]
+    bl ARM_TIM_clear_INT_ASM
+    ldr A1, =tim_int_flag
+    mov A2, #0
+    str A2, [A1]
+    dsb SY
+    cpsie I
+    b IDLE_display
 
 // Internal helper: restart the timer at the running speed in V3.
 // Preserves V1-V8; clobbers A1-A3. Called only from IDLE with IRQs enabled.
 IDLE_update_timer:
-    PUSH {LR}
-    CPSID I
-    LDR A3, =TIMER_control
-    MOV A2, #0
-    STR A2, [A3]          // stop before changing the load
-    LDR A1, =200000000    // one second at 200 MHz
-    LSR A1, A1, V3
-    MOV A2, #0b110        // IRQ and auto-reload enabled, counter stopped
-    BL ARM_TIM_config_ASM
-    BL ARM_TIM_clear_INT_ASM
-    LDR A1, =tim_int_flag
-    MOV A2, #0
-    STR A2, [A1]
-    LDR A3, =TIMER_control
-    MOV A2, #0b111
-    STR A2, [A3]
-    DSB SY
-    CPSIE I
-    POP {LR}
-    BX LR
+    push {LR}
+    cpsid I
+    ldr A3, =TIMER_control
+    mov A2, #0
+    str A2, [A3]          // stop before changing the load
+    ldr A1, =200000000    // one second at 200 MHz
+    lsr A1, A1, V3
+    mov A2, #0b110        // IRQ and auto-reload enabled, counter stopped
+    bl ARM_TIM_config_ASM
+    bl ARM_TIM_clear_INT_ASM
+    ldr A1, =tim_int_flag
+    mov A2, #0
+    str A2, [A1]
+    ldr A3, =TIMER_control
+    mov A2, #0b111
+    str A2, [A3]
+    dsb SY
+    cpsie I
+    pop {LR}
+    bx LR
 
 read_slider_switches_ASM:
     LDR A2, =SW_ADDR
     LDR A1, [A2]
-    LDR A2, =0x3FF
-    AND A1, A1, A2
+    ldr A2, =0x3FF
+    and A1, A1, A2
     BX LR
 
 // pre-- A1: LED bit mask
@@ -413,7 +413,7 @@ HEX_write_ASM:
 // pre-- A2: pattern to apply
 HEX_apply_pattern:
     push {V1, V2, V3}
-    LDR V1, =HEX_ADDR_0_3
+    ldr V1, =HEX_ADDR_0_3
     mov V2, #0 // hex0
 loop:
     ands V3, A1, #1
@@ -434,7 +434,7 @@ write:
     mov V3, #0xFF
     lsl V3, V3, V2
     // clear
-    LDR A3, [V1]
+    ldr A3, [V1]
     bic A3, A3, V3
     // write
     lsl V3, A2, V2
@@ -446,7 +446,7 @@ write:
 switch:
     // switch from 0-3 to 4-5
     mov V2, #0
-    LDR V1, =HEX_ADDR_4_5
+    ldr V1, =HEX_ADDR_4_5
     b finish_switch
 
 
@@ -604,9 +604,9 @@ CONFIG_GIC:
     MOV R1, #1              // this field is a bit-mask; bit 0 targets cpu0
     BL CONFIG_INTERRUPT
 
-    MOV R0, #29             // ARM A9 private timer (banked for this CPU)
-    MOV R1, #1
-    BL CONFIG_INTERRUPT
+    mov R0, #29             // ARM A9 private timer (banked for this CPU)
+    mov R1, #1
+    bl CONFIG_INTERRUPT
 
     /* configure the GIC CPU Interface */
     LDR R0, =0xFFFEC100     // base address of CPU Interface
@@ -684,25 +684,25 @@ SERVICE_IRQ:
     /* Read the ICCIAR from the CPU Interface */
     LDR R4, =0xFFFEC100
     LDR R5, [R4, #0x0C]     // read from ICCIAR
-    UBFX R0, R5, #0, #10    // interrupt ID; retain full ICCIAR token in R5
-    CMP R0, #29
-    BEQ Timer_check
+    ubfx R0, R5, #0, #10    // interrupt ID; retain full ICCIAR token in R5
+    cmp R0, #29
+    beq Timer_check
 Pushbutton_check:
-    CMP R0, #73
-    BEQ Handle_pushbutton
-    LDR R1, =1023           // spurious IRQ: no interrupt to acknowledge
-    CMP R0, R1
-    BEQ RETURN_IRQ
+    cmp R0, #73
+    beq Handle_pushbutton
+    ldr R1, =1023           // spurious IRQ: no interrupt to acknowledge
+    cmp R0, R1
+    beq RETURN_IRQ
 UNEXPECTED:
-    B UNEXPECTED           // unknown interrupt ID: stop here for debugging
+    b UNEXPECTED           // unknown interrupt ID: stop here for debugging
 Handle_pushbutton:
     BL KEY_ISR
-    B EXIT_IRQ
+    b EXIT_IRQ
 Timer_check:
-    BL ARM_TIM_ISR
+    bl ARM_TIM_ISR
 EXIT_IRQ:
     /* Write to the End of Interrupt Register (ICCEOIR) */
-    DSB SY                 // finish clearing the peripheral before EOI
+    dsb SY                 // finish clearing the peripheral before EOI
     STR R5, [R4, #0x10]     // write to ICCEOIR
 RETURN_IRQ:
     POP {R0-R7, LR}
@@ -715,17 +715,17 @@ SERVICE_FIQ:
 
 /*--- KEY interrupt service routine -------------------------------*/
 KEY_ISR:
-    LDR R0, =EDGECAPTURE_REG
-    LDR R1, [R0]           // one bit per pressed-and-released pushbutton
-    AND R1, R1, #0xF
-    LDR R2, =PB_int_flag
-    STR R1, [R2]           // IDLE will interpret the captured button mask
-    STR R1, [R0]           // write captured bits back to clear the interrupt
-    BX LR
+    ldr R0, =EDGECAPTURE_REG
+    ldr R1, [R0]           // one bit per pressed-and-released pushbutton
+    and R1, R1, #0xF
+    ldr R2, =PB_int_flag
+    str R1, [R2]           // IDLE will interpret the captured button mask
+    str R1, [R0]           // write captured bits back to clear the interrupt
+    bx LR
 
 /*--- ARM A9 private timer interrupt service routine ---------------*/
 ARM_TIM_ISR:
-    LDR R0, =tim_int_flag
-    MOV R1, #1
-    STR R1, [R0]           // IDLE will consume this pending timer event
-    B ARM_TIM_clear_INT_ASM // clear F and return using the caller's LR
+    ldr R0, =tim_int_flag
+    mov R1, #1
+    str R1, [R0]           // IDLE will consume this pending timer event
+    b ARM_TIM_clear_INT_ASM // clear F and return using the caller's LR
