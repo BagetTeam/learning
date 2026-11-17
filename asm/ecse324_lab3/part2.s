@@ -97,9 +97,18 @@ _start:
     MOV R0, #0b01010011 // IRQ unmasked, MODE = SVC
     MSR CPSR_c, R0
 
+    // clear any prev timeouts
+    MOV A1, #0
+    MOV A2, #0
+    BL ARM_TIM_config_ASM
+    BL ARM_TIM_clear_INT_ASM
+
+    // enable pb interrupts
     mov A1, #0b1111
     bl enable_PB_INT_ASM
 
+    // set timer config
+    MOV A2, #0b111          // Prescaler=0, IRQ=1, auto-reload=1, enable=1
     bl ARM_TIM_config_ASM
 
 IDLE:
