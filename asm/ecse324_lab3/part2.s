@@ -136,12 +136,12 @@ _start:
     MSR CPSR_c, R0
 
 IDLE:
-    mov V1, #0            // shift count
-    mov V2, #-1           // -1: left, 1: right
-    mov V3, #2            // 0-4 -> 1, 1/2, 1/4, 1/8, 1/16 s
-    mov V4, #0            // 0: running, 1: paused
-    mov V5, #-1           // prev switches
-    ldr V6, =COFFEE       // current msg
+    mov V1, #0          // shift count
+    mov V2, #-1         // -1: left, 1: right
+    mov V3, #2          // 0-4 -> 1, 1/2, 1/4, 1/8, 1/16 s
+    mov V4, #0          // 0: running, 1: paused
+    mov V5, #-1         // prev switches
+    ldr V6, =COFFEE     // current msg
 
 IDLE_loop:
     // IRQs off -> take flags, then clear
@@ -180,7 +180,7 @@ IDLE_loop:
 
 IDLE_valid_message:
     cmp A1, V5
-    movne V1, #0          // new msg -> reset shift
+    movne V1, #0 // new msg -> reset shift
     movne V7, #0
 IDLE_message_ready:
     mov V5, A1
@@ -189,19 +189,19 @@ IDLE_message_ready:
     tst V8, #0x8
     bne IDLE_toggle_pause
     cmp V4, #0
-    bne IDLE_display      // paused -> skip PB0-2 + timer
+    bne IDLE_display // paused -> skip PB0-2 + timer
 
     tst V8, #0x4
-    rsbne V2, V2, #0      // PB2 -> reverse
+    rsbne V2, V2, #0 // PB2 -> reverse
 
     mov A4, V3
     and A1, V8, #0x3
-    cmp A1, #0x1          // PB0 -> slower
+    cmp A1, #0x1  // PB0 -> slower
     bne IDLE_check_faster
     cmp V3, #0
     subgt V3, V3, #1
 IDLE_check_faster:
-    cmp A1, #0x2          // PB1 -> faster
+    cmp A1, #0x2  // PB1 -> faster
     bne IDLE_speed_ready
     cmp V3, #4
     addlt V3, V3, #1
@@ -215,7 +215,7 @@ IDLE_check_timer:
     cmp V7, #0
     beq IDLE_display
     add V1, V1, V2
-    ldrb A1, [V6]         // wrap at msg length
+    ldrb A1, [V6]  // wrap at msg length
 IDLE_wrap_left:
     cmp V1, #0
     addlt V1, V1, A1
@@ -247,7 +247,7 @@ IDLE_toggle_pause:
     ldr A3, =TIMER_control
     ldr A2, [A3]
     cmp V4, #0
-    bicne A2, A2, #1      // pause -> keep remaining count
+    bicne A2, A2, #1  // pause -> keep remaining count
     orreq A2, A2, #1
     str A2, [A3]
     bl ARM_TIM_clear_INT_ASM
@@ -267,7 +267,7 @@ IDLE_update_timer:
     str A2, [A3]
     ldr A1, =200000000
     lsr A1, A1, V3
-    mov A2, #0b110        // configure while stopped
+    mov A2, #0b110  // configure while stopped
     bl ARM_TIM_config_ASM
     bl ARM_TIM_clear_INT_ASM
     ldr A1, =tim_int_flag
@@ -335,7 +335,8 @@ ARM_TIM_clear_INT_ASM:
 
 
 
-// A1 -> msg, A2 -> right shifts (negative = left)
+// pre-- A1: msg to write 
+// pre-- A2: number of right shifts (negative = left)
 write_msg:
     push {V1-V5, LR}
 
@@ -343,7 +344,7 @@ write_msg:
     mov V1, A1
     mov V2, A3
     cmp V2, #6
-    movlt V2, #6           // width -> max(length, 6)
+    movlt V2, #6  // width -> max(length, 6)
     sub V3, V2, A3
 
 write_msg_shift_negative:
@@ -359,7 +360,7 @@ write_msg_shift_reduce:
     rsb V4, A2, V2
     cmp V4, V2
     moveq V4, #0
-    mov V5, #HEX5          // HEX5 -> HEX0
+    mov V5, #HEX5 // HEX5 -> HEX0
 
 write_msg_digit:
     mov A2, #BLANK
@@ -381,30 +382,31 @@ write_msg_display:
     pop {V1-V5, LR}
     bx LR
 
-// A1 -> HEX mask
+// pre-- A1: indices of HEX
 HEX_clear_ASM:
     mov A2, #NONE
     b HEX_apply_pattern
 
-// A1 -> HEX mask
+
+// pre-- A1: indices of HEX
 HEX_flood_ASM:
     mov A2, #FULL
     b HEX_apply_pattern
 
-// A1 -> HEX mask
-// A2 -> digit (0-F)
+// pre-- A1: indices of HEX
+// pre-- A2: pattern to match (0-9 or a-f)
 HEX_write_ASM:
     ldr A3, =HEX_CODES
     ldrb A2, [A3, A2]
     b HEX_apply_pattern
 
 
-// A1 -> HEX mask
-// A2 -> segments
+// pre-- A1: indices of HEX
+// pre-- A2: pattern to apply
 HEX_apply_pattern:
     push {V1, V2, V3}
     ldr V1, =HEX_ADDR_0_3
-    mov V2, #0
+    mov V2, #0 // hex0
 loop:
     ands V3, A1, #1
     bne write
@@ -423,15 +425,18 @@ end_loop:
 write:
     mov V3, #0xFF
     lsl V3, V3, V2
-    ldr A3, [V1]
+    // clear
+    LDR A3, [V1]
     bic A3, A3, V3
+    // write
     lsl V3, A2, V2
     orr A3, A3, V3
+    // save
     str A3, [V1]
     b finish_write
 
 switch:
-    // HEX0-3 -> HEX4-5
+     // switch from 0-3 to 4-5
     mov V2, #0
     ldr V1, =HEX_ADDR_4_5
     b finish_switch
@@ -483,7 +488,9 @@ switch:
 
 
 // PB
-// A1 <- pressed PB mask
+
+// reads the data register
+// post-- A1: indices of pressed buttons
 read_PB_data_ASM:
     ldr A1, =DATA_REG
     ldr A1, [A1]
@@ -491,8 +498,9 @@ read_PB_data_ASM:
     bx LR 
 
 
-// A1 -> PB index
-// A1 <- 1 if pressed
+// tells us if a button is pressed or not
+// pre-- A1: index of button to look at
+// post-- A1: 0x00000001 if button is pressed else 0
 PB_data_is_pressed_ASM:
     push {V1, LR}
     mov V1, A1
@@ -506,7 +514,7 @@ PB_data_is_pressed_ASM:
     bx LR
 
 
-// A1 <- released PB mask
+// post-- A1: indices of buttons pressed and released
 read_PB_edgecp_ASM:
     ldr A1, =EDGECAPTURE_REG
     ldr A1, [A1]
@@ -514,8 +522,8 @@ read_PB_edgecp_ASM:
     bx LR 
 
 
-// A1 -> PB index
-// A1 <- 1 if released
+// pre-- A1: index of button
+// post-- A1: 0x00000001 if button is pressed and release else 0
 PB_edgecp_is_pressed_ASM:
     push {V1, LR}
     mov V1, A1
@@ -528,7 +536,7 @@ PB_edgecp_is_pressed_ASM:
     pop {V1, LR}
     bx LR
 
-// read -> write back to clear
+// clears edgecapture register by writing what we read to it
 PB_clear_edgecp_ASM:
     push {V1, V2}
     ldr V1, =EDGECAPTURE_REG
@@ -537,7 +545,8 @@ PB_clear_edgecp_ASM:
     pop {V1, V2}
     bx LR 
 
-// A1 -> PB mask
+// set interupt mask bit to indices of PB
+// pre-- A1: indices of PB
 enable_PB_INT_ASM:
     ldr A2, =INTERRUPT_REG
     ldr A3, [A2]
@@ -545,7 +554,8 @@ enable_PB_INT_ASM:
     str A3, [A2]
     bx LR
 
-// A1 -> PB mask
+// unset interupt mask bit to indices of PB
+// pre-- A1: indices of PB
 disable_PB_INT_ASM:
     ldr A2, =INTERRUPT_REG
     ldr A3, [A2]
@@ -702,7 +712,7 @@ KEY_ISR:
     ldr R1, [R0]
     and R1, R1, #0xF
     ldr R2, =PB_int_flag
-    str R1, [R2]           // PB mask -> flag
+    str R1, [R2]  // PB mask -> flag
     str R1, [R0]
     bx LR
 
@@ -710,5 +720,5 @@ KEY_ISR:
 ARM_TIM_ISR:
     ldr R0, =tim_int_flag
     mov R1, #1
-    str R1, [R0]           // timer -> flag
+    str R1, [R0]  // timer -> flag
     b ARM_TIM_clear_INT_ASM
