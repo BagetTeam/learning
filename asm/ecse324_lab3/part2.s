@@ -24,7 +24,6 @@ HEX3 = 0x00000008
 HEX4 = 0x00000010
 HEX5 = 0x00000020
 
-WORDS:
 
 HEX_CODES:
 .byte 0b00111111, 0b00000110, 0b01011011, 0b01001111 // 0, 1, 2, 3
@@ -35,13 +34,33 @@ HEX_CODES:
 .align 2
 
 C0FFEE:
-.byte 
+    .byte 0xC, 0x0, 0xF, 0xF, 0xE, 0xE, 0xFF
 
-HEX_MSGS:
-.byte 
+CAFE5:
+    .byte 0xC, 0xA, 0xF, 0xE, 0x5, 0xFF
+
+ACE:
+    .byte 0xA, 0xC, 0xE, 0xFF
+
+.align 2
 
 
-NONE = 0x00
+
+
+// Task:
+
+/*  LED -> Light up speed (2 lights per increase (1, 1/2, 1/4, 1/8, 1/16) for all 10 LEDs)
+        - Pause = all off
+
+    PB: 0 = Make slower (no effect at min speed)
+        1 = Make faster (no effect at max speed)
+        2 = reverse shifting
+        3 = pause and resume shifting
+        - when paused, 0-1-2 no effect
+    
+    Switches: same as part 1
+
+*/ 
 
 
 .text
@@ -66,6 +85,11 @@ _start:
     // enable IRQ interrupts in the processor
     MOV R0, #0b01010011 // IRQ unmasked, MODE = SVC
     MSR CPSR_c, R0
+
+    mov A1, #0b1111
+    bl enable_PB_INT_ASM
+
+    bl ARM_TIM_config_ASM
 
 IDLE:
     B IDLE // This is where you write your main program task(s
@@ -99,9 +123,29 @@ ARM_TIM_clear_INT_ASM:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // pre-- A1: msg to write
 // pre-- A2: number of right shift
 write_msg:
+    // get msg char length
+    // len < 6: start pos = 6 - len
+    // else 0
+
+    // shift with % max(len, 6)
+    // if char within hex 0-5, write, else ignore
 
     mov V1, #0 // hex to target
 
@@ -210,7 +254,25 @@ switch:
 
 
 
+// PB
 
+// set interupt mask bit to indices of PB
+// pre-- A1: indices of PB
+enable_PB_INT_ASM:
+    ldr A2, =INTERRUPT_REG
+    ldr A3, [A2]
+    orr A3, A3, A1
+    str A3, [A2]
+    bx LR
+
+// unset interupt mask bit to indices of PB
+// pre-- A1: indices of PB
+disable_PB_INT_ASM:
+    ldr A2, =INTERRUPT_REG
+    ldr A3, [A2]
+    bic A3, A3, A1
+    str A3, [A2]
+    bx LR
 
 
 
