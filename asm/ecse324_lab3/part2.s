@@ -397,6 +397,11 @@ HEX_clear_ASM:
     b HEX_apply_pattern
 
 // pre-- A1: indices of HEX
+HEX_flood_ASM:
+    mov A2, #FULL
+    b HEX_apply_pattern
+
+// pre-- A1: indices of HEX
 // pre-- A2: pattern to match (0-9 or a-f)
 HEX_write_ASM:
     ldr A3, =HEX_CODES
@@ -491,7 +496,62 @@ switch:
 
 
 // PB
+// reads the data register
+// post-- A1: indices of pressed buttons
+read_PB_data_ASM:
+    ldr A1, =DATA_REG
+    ldr A1, [A1]
+    and A1, A1, #0xF
+    bx LR 
 
+
+// tells us if a button is pressed or not
+// pre-- A1: index of button to look at
+// post-- A1: 0x00000001 if button is pressed else 0
+PB_data_is_pressed_ASM:
+    push {V1, LR}
+    mov V1, A1
+    bl read_PB_data_ASM
+    tst V1, A1
+
+    moveq A1, #0x00000000
+    movne A1, #0x00000001
+    
+    pop {V1, LR}
+    bx LR
+
+
+// post-- A1: indices of buttons pressed and released
+read_PB_edgecp_ASM:
+    ldr A1, =EDGECAPTURE_REG
+    ldr A1, [A1]
+    and A1, A1, #0xF
+    bx LR 
+
+
+// pre-- A1: index of button
+// post-- A1: 0x00000001 if button is pressed and release else 0
+PB_edgecp_is_pressed_ASM:
+    push {V1, LR}
+    mov V1, A1
+    bl read_PB_edgecp_ASM
+    tst V1, A1
+
+    moveq A1, #0x00000000
+    movne A1, #0x00000001
+    
+    pop {V1, LR}
+    bx LR
+
+// clears edgecapture register by writing what we read to it
+PB_clear_edgecp_ASM:
+    push {V1, V2}
+    ldr V1, =EDGECAPTURE_REG
+    ldr V2, [V1]
+    str V2, [V1]
+    pop {V1, V2}
+    bx LR 
+    
 // set interupt mask bit to indices of PB
 // pre-- A1: indices of PB
 enable_PB_INT_ASM:
