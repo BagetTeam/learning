@@ -281,20 +281,27 @@ IDLE_update_timer:
     pop {LR}
     bx LR
 
+
+
+// returns the state of slider switches in A1
+// post- A1: slide switch state
 read_slider_switches_ASM:
-    LDR A2, =SW_ADDR
-    LDR A1, [A2]
+    LDR A2, =SW_ADDR // load the address of slider switch state
+    LDR A1, [A2] // read slider switch state
     ldr A2, =0x3FF
     and A1, A1, A2
     BX LR
 
-// A1 -> LEDs
+// LEDs Driver
+// writes the state of LEDs (On/Off) in A1 to the LEDs' control register
+// pre-- A1: data to write to LED state
 write_LEDs_ASM:
-    LDR A2, =LED_ADDR
-    STR A1, [A2]
+    LDR A2, =LED_ADDR // load the address of the LEDs' state
+    STR A1, [A2] // update LED state with the contents of A1
     BX LR
 
-// A1 -> load, A2 -> config
+// pre-- A1: load, 
+// pre-- A2: config
 ARM_TIM_config_ASM:
     ldr A3, =TIMER_load
     str A1, [A3]
@@ -304,7 +311,7 @@ ARM_TIM_config_ASM:
     bx LR
 
 
-// A1 <- F bit
+// post-- A1: F bit (0x00000001 or 0x000000000)
 ARM_TIM_read_INT_ASM:
     ldr A1, =TIMER_interr
     ldr A1, [A1]
@@ -317,17 +324,6 @@ ARM_TIM_clear_INT_ASM:
     mov A2, #1
     str A2, [A1]
     bx LR
-
-
-
-
-
-
-
-
-
-
-
 
 
 
