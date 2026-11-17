@@ -306,7 +306,7 @@ ARM_TIM_config_ASM:
 
     ldr A3, =TIMER_control
     str A2, [A3]
-    bx lR
+    bx LR
 
 
 // read 'F' value
@@ -551,7 +551,7 @@ PB_clear_edgecp_ASM:
     str V2, [V1]
     pop {V1, V2}
     bx LR 
-    
+
 // set interupt mask bit to indices of PB
 // pre-- A1: indices of PB
 enable_PB_INT_ASM:
