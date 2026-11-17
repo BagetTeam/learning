@@ -23,6 +23,8 @@ tim_int_flag:
 .equ TIMER_DEFAULT_LOAD, 50000000 // 200 MHz * 0.25 s
 .equ INTERRUPT_REG, 0xFF200058
 .equ EDGECAPTURE_REG, 0xFF20005C
+.equ SW_ADDR, 0xFF200040
+.equ LED_ADDR, 0xFF200000
 
 // HEX
 .equ HEX_ADDR_0_3, 0xFF200020
@@ -64,6 +66,9 @@ MSG_8:
 
 MSG_10:
     .byte 16, 0xC, 0xA, 0xF, 0xE, BLANK, 0xB, 0xE, 0xE, 0xF, BLANK, 0xC, 0, 0xF, 0xF, 0xE, 0xE
+
+MSG_BLANK:
+    .byte 6, BLANK, BLANK, BLANK, BLANK, BLANK, BLANK
 
 .align 2
 
@@ -132,7 +137,166 @@ _start:
     MSR CPSR_c, R0
 
 IDLE:
-    B IDLE // This is where you write your main program task(s
+    // Persistent state (the drivers and IRQ handlers preserve these registers).
+    MOV V1, #0            // rotation: positive = right, negative = left
+    MOV V2, #-1           // direction: initially left
+    MOV V3, #2            // speed index 0..4: 1, 1/2, 1/4, 1/8, 1/16 s
+    MOV V4, #0            // paused: 0 = running, 1 = paused
+    MOV V5, #-1           // previous switches; force initial message selection
+    LDR V6, =COFFEE       // current length-prefixed message
+
+IDLE_loop:
+    // Atomically take and clear both flags so an IRQ cannot be lost between
+    // reading a flag and clearing it. V7 = timer event, V8 = button mask.
+    CPSID I
+    MOV A2, #0
+    LDR A1, =PB_int_flag
+    LDR V8, [A1]
+    STR A2, [A1]
+    LDR A1, =tim_int_flag
+    LDR V7, [A1]
+    STR A2, [A1]
+    CPSIE I
+
+    BL read_slider_switches_ASM
+    CMP A1, #0x00
+    LDREQ V6, =COFFEE
+    BEQ IDLE_valid_message
+    CMP A1, #0x01
+    LDREQ V6, =CAFES
+    BEQ IDLE_valid_message
+    CMP A1, #0x02
+    LDREQ V6, =CABS
+    BEQ IDLE_valid_message
+    CMP A1, #0x04
+    LDREQ V6, =ACE
+    BEQ IDLE_valid_message
+    CMP A1, #0x08
+    LDREQ V6, =MSG_8
+    BEQ IDLE_valid_message
+    CMP A1, #0x10
+    LDREQ V6, =MSG_10
+    BEQ IDLE_valid_message
+    LDR V6, =MSG_BLANK     // invalid switches only blank the HEX display
+    B IDLE_message_ready
+
+IDLE_valid_message:
+    CMP A1, V5
+    MOVNE V1, #0          // a newly selected message starts left-justified
+    MOVNE V7, #0          // do not immediately shift it with an old timer event
+IDLE_message_ready:
+    MOV V5, A1
+
+    // PB3 takes priority if several buttons arrive together. Discard any
+    // simultaneous timer tick when pausing/resuming; do not jump on resume.
+    TST V8, #0x8
+    BNE IDLE_toggle_pause
+    CMP V4, #0
+    BNE IDLE_display      // while paused, ignore PB0-2 and timer events
+
+    TST V8, #0x4
+    RSBNE V2, V2, #0      // PB2 reverses direction
+
+    MOV A4, V3            // remember the old speed
+    AND A1, V8, #0x3
+    CMP A1, #0x1          // PB0 alone: slower, down to index 0
+    BNE IDLE_check_faster
+    CMP V3, #0
+    SUBGT V3, V3, #1
+IDLE_check_faster:
+    CMP A1, #0x2          // PB1 alone: faster, up to index 4
+    BNE IDLE_speed_ready
+    CMP V3, #4
+    ADDLT V3, V3, #1
+IDLE_speed_ready:
+    CMP V3, A4
+    BEQ IDLE_check_timer
+    BL IDLE_update_timer
+    MOV V7, #0            // the new speed starts with a fresh timer interval
+
+IDLE_check_timer:
+    CMP V7, #0
+    BEQ IDLE_display
+    ADD V1, V1, V2        // move exactly one position per timer event
+    LDRB A1, [V6]         // wrap over the entire message, including blanks
+IDLE_wrap_left:
+    CMP V1, #0
+    ADDLT V1, V1, A1
+    BLT IDLE_wrap_left
+IDLE_wrap_right:
+    CMP V1, A1
+    SUBGE V1, V1, A1
+    BGE IDLE_wrap_right
+
+IDLE_display:
+    MOV A1, V6
+    MOV A2, V1
+    BL write_msg
+
+    // Speed index n lights the lowest 2*(n+1) LEDs; pause turns them off.
+    ADD A2, V3, #1
+    LSL A2, A2, #1
+    MOV A1, #1
+    LSL A1, A1, A2
+    SUB A1, A1, #1
+    CMP V4, #0
+    MOVNE A1, #0
+    BL write_LEDs_ASM
+    B IDLE_loop
+
+IDLE_toggle_pause:
+    EOR V4, V4, #1
+    CPSID I
+    LDR A3, =TIMER_control
+    LDR A2, [A3]
+    CMP V4, #0
+    BICNE A2, A2, #1      // pause the counter without reloading its value
+    ORREQ A2, A2, #1      // resume with the remaining count and same speed
+    STR A2, [A3]
+    BL ARM_TIM_clear_INT_ASM
+    LDR A1, =tim_int_flag
+    MOV A2, #0
+    STR A2, [A1]
+    DSB SY
+    CPSIE I
+    B IDLE_display
+
+// Internal helper: restart the timer at the running speed in V3.
+// Preserves V1-V8; clobbers A1-A3. Called only from IDLE with IRQs enabled.
+IDLE_update_timer:
+    PUSH {LR}
+    CPSID I
+    LDR A3, =TIMER_control
+    MOV A2, #0
+    STR A2, [A3]          // stop before changing the load
+    LDR A1, =200000000    // one second at 200 MHz
+    LSR A1, A1, V3
+    MOV A2, #0b110        // IRQ and auto-reload enabled, counter stopped
+    BL ARM_TIM_config_ASM
+    BL ARM_TIM_clear_INT_ASM
+    LDR A1, =tim_int_flag
+    MOV A2, #0
+    STR A2, [A1]
+    LDR A3, =TIMER_control
+    MOV A2, #0b111
+    STR A2, [A3]
+    DSB SY
+    CPSIE I
+    POP {LR}
+    BX LR
+
+read_slider_switches_ASM:
+    LDR A2, =SW_ADDR
+    LDR A1, [A2]
+    LDR A2, =0x3FF
+    AND A1, A1, A2
+    BX LR
+
+// pre-- A1: LED bit mask
+write_LEDs_ASM:
+    LDR A2, =LED_ADDR
+    STR A1, [A2]
+    BX LR
 
 // pre-- A1: load value (initial value)
 // pre-- A2: configuration bit 
