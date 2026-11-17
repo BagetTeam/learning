@@ -34,7 +34,7 @@ HEX_CODES:
 .byte 0x00 // Blank
 .align 2
 
-// First byte is the message length
+// first byte is length of msg, all other is chars of msg (len is important for write_msg)
 COFFEE:
     .byte 6, 0xC, 0, 0xF, 0xF, 0xE, 0xE
 
@@ -148,23 +148,55 @@ ARM_TIM_clear_INT_ASM:
 
 
 
-// pre-- A1: msg to write
-// pre-- A2: number of right shift
+// pre-- A1: address of a length-prefixed message (digits 0-15 or BLANK)
+// pre-- A2: signed number of right shifts (negative shifts rotate left)
+// Short messages are padded on the left to six positions.
+// Longer messages rotate across their full length; only six positions show.
+// Preserves V1-V5; clobbers A1-A3 and flags.
 write_msg:
-    // get msg char length
-    // len < 6: start pos = 6 - len
-    // else 0
+    push {V1-V5, LR}
 
-    // shift with % max(len, 6)
-    // if char within hex 0-5, write, else ignore
+    ldrb A3, [A1], #1       // Length; A1 now points to the first digit
+    mov V1, A1             // Message data pointer
+    mov V2, A3
+    cmp V2, #6
+    movlt V2, #6           // Circular width = max(length, 6)
+    sub V3, V2, A3         // Number of leading blank positions
 
-    mov V1, #0 // hex to target
+write_msg_shift_negative:
+    cmp A2, #0
+    addlt A2, A2, V2
+    blt write_msg_shift_negative
 
-    mov A1, #(HEX0 | HEX1)
-    mov A2, V1
-    bl HEX_index_shifting
-    mov A2, #0xe
+write_msg_shift_reduce:
+    cmp A2, V2
+    subge A2, A2, V2
+    bge write_msg_shift_reduce // Normalize shift into 0 .. width-1
+
+    rsb V4, A2, V2         // First source = (width - shift) % width
+    cmp V4, V2
+    moveq V4, #0
+    mov V5, #HEX5          // Write from leftmost HEX5 to rightmost HEX0
+
+write_msg_digit:
+    mov A2, #BLANK
+    cmp V4, V3
+    blt write_msg_display  // Source is within the leading padding
+    sub A3, V4, V3
+    ldrb A2, [V1, A3]      // Message digit (including explicit blanks)
+
+write_msg_display:
+    mov A1, V5
     bl HEX_write_ASM
+
+    add V4, V4, #1
+    cmp V4, V2
+    moveq V4, #0           // Wrap source at the full circular width
+    lsrs V5, V5, #1
+    bne write_msg_digit
+
+    pop {V1-V5, LR}
+    bx LR
 
 // pre-- A1: indices of HEX
 HEX_clear_ASM:
