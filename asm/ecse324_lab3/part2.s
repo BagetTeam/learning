@@ -103,7 +103,7 @@ _start:
     MSR CPSR, R1 // change to supervisor mode
     LDR SP, =0x3FFFFFFF - 3 // set SVC stack to top of DDR3 memory
 
-    // Stop the timer and clear stale events while CPU IRQs are masked.
+    // clear old interrupts
     mov A1, #0
     mov A2, #0
     bl ARM_TIM_config_ASM
@@ -113,7 +113,7 @@ _start:
     bl disable_PB_INT_ASM
     ldr A1, =EDGECAPTURE_REG
     mov A2, #0xF
-    str A2, [A1]          // clear all stale pushbutton edges
+    str A2, [A1]
 
     mov A2, #0
     ldr A1, =PB_int_flag
@@ -121,33 +121,31 @@ _start:
     ldr A1, =tim_int_flag
     str A2, [A1]
 
-    BL CONFIG_GIC        // enable interrupt IDs 29 and 73
+    BL CONFIG_GIC        // configure the ARM GIC
 
     mov A1, #0xF
     bl enable_PB_INT_ASM
 
-    // Reload A1 explicitly: the calls above overwrite argument registers.
     ldr A1, =TIMER_DEFAULT_LOAD
-    mov A2, #0b111          // Prescaler=0, IRQ=1, auto-reload=1, enable=1
+    mov A2, #0b111          // IRQ + auto-reload + enable
     bl ARM_TIM_config_ASM
 
-    // Unmask CPU IRQs only after all initialization writes have completed.
+    // setup done -> enable IRQs
     dsb SY
     MOV R0, #0b01010011 // IRQ unmasked, FIQ masked, MODE = SVC
     MSR CPSR_c, R0
 
 IDLE:
-    // Persistent state (the drivers and IRQ handlers preserve these registers).
-    mov V1, #0            // rotation: positive = right, negative = left
-    mov V2, #-1           // direction: initially left
-    mov V3, #2            // speed index 0..4: 1, 1/2, 1/4, 1/8, 1/16 s
-    mov V4, #0            // paused: 0 = running, 1 = paused
-    mov V5, #-1           // previous switches; force initial message selection
-    ldr V6, =COFFEE       // current length-prefixed message
+    mov V1, #0            // shift count
+    mov V2, #-1           // -1: left, 1: right
+    mov V3, #2            // 0-4 -> 1, 1/2, 1/4, 1/8, 1/16 s
+    mov V4, #0            // 0: running, 1: paused
+    mov V5, #-1           // prev switches
+    ldr V6, =COFFEE       // current msg
 
 IDLE_loop:
-    // Atomically take and clear both flags so an IRQ cannot be lost between
-    // reading a flag and clearing it. V7 = timer event, V8 = button mask.
+    // IRQs off -> take flags, then clear
+    // V7 -> timer, V8 -> PB
     cpsid I
     mov A2, #0
     ldr A1, =PB_int_flag
@@ -177,34 +175,33 @@ IDLE_loop:
     cmp A1, #0x10
     ldreq V6, =MSG_10
     beq IDLE_valid_message
-    ldr V6, =MSG_BLANK     // invalid switches only blank the HEX display
+    ldr V6, =MSG_BLANK
     b IDLE_message_ready
 
 IDLE_valid_message:
     cmp A1, V5
-    movne V1, #0          // a newly selected message starts left-justified
-    movne V7, #0          // do not immediately shift it with an old timer event
+    movne V1, #0          // new msg -> reset shift
+    movne V7, #0
 IDLE_message_ready:
     mov V5, A1
 
-    // PB3 takes priority if several buttons arrive together. Discard any
-    // simultaneous timer tick when pausing/resuming; do not jump on resume.
+    // PB3 first -> pause/resume
     tst V8, #0x8
     bne IDLE_toggle_pause
     cmp V4, #0
-    bne IDLE_display      // while paused, ignore PB0-2 and timer events
+    bne IDLE_display      // paused -> skip PB0-2 + timer
 
     tst V8, #0x4
-    rsbne V2, V2, #0      // PB2 reverses direction
+    rsbne V2, V2, #0      // PB2 -> reverse
 
-    mov A4, V3            // remember the old speed
+    mov A4, V3
     and A1, V8, #0x3
-    cmp A1, #0x1          // PB0 alone: slower, down to index 0
+    cmp A1, #0x1          // PB0 -> slower
     bne IDLE_check_faster
     cmp V3, #0
     subgt V3, V3, #1
 IDLE_check_faster:
-    cmp A1, #0x2          // PB1 alone: faster, up to index 4
+    cmp A1, #0x2          // PB1 -> faster
     bne IDLE_speed_ready
     cmp V3, #4
     addlt V3, V3, #1
@@ -212,13 +209,13 @@ IDLE_speed_ready:
     cmp V3, A4
     beq IDLE_check_timer
     bl IDLE_update_timer
-    mov V7, #0            // the new speed starts with a fresh timer interval
+    mov V7, #0
 
 IDLE_check_timer:
     cmp V7, #0
     beq IDLE_display
-    add V1, V1, V2        // move exactly one position per timer event
-    ldrb A1, [V6]         // wrap over the entire message, including blanks
+    add V1, V1, V2
+    ldrb A1, [V6]         // wrap at msg length
 IDLE_wrap_left:
     cmp V1, #0
     addlt V1, V1, A1
@@ -233,7 +230,7 @@ IDLE_display:
     mov A2, V1
     bl write_msg
 
-    // Speed index n lights the lowest 2*(n+1) LEDs; pause turns them off.
+    // speed -> 2 LEDs per level, paused -> off
     add A2, V3, #1
     lsl A2, A2, #1
     mov A1, #1
@@ -250,8 +247,8 @@ IDLE_toggle_pause:
     ldr A3, =TIMER_control
     ldr A2, [A3]
     cmp V4, #0
-    bicne A2, A2, #1      // pause the counter without reloading its value
-    orreq A2, A2, #1      // resume with the remaining count and same speed
+    bicne A2, A2, #1      // pause -> keep remaining count
+    orreq A2, A2, #1
     str A2, [A3]
     bl ARM_TIM_clear_INT_ASM
     ldr A1, =tim_int_flag
@@ -261,17 +258,16 @@ IDLE_toggle_pause:
     cpsie I
     b IDLE_display
 
-// Internal helper: restart the timer at the running speed in V3.
-// Preserves V1-V8; clobbers A1-A3. Called only from IDLE with IRQs enabled.
+// V3 -> speed, restart timer
 IDLE_update_timer:
     push {LR}
     cpsid I
     ldr A3, =TIMER_control
     mov A2, #0
-    str A2, [A3]          // stop before changing the load
-    ldr A1, =200000000    // one second at 200 MHz
+    str A2, [A3]
+    ldr A1, =200000000
     lsr A1, A1, V3
-    mov A2, #0b110        // IRQ and auto-reload enabled, counter stopped
+    mov A2, #0b110        // configure while stopped
     bl ARM_TIM_config_ASM
     bl ARM_TIM_clear_INT_ASM
     ldr A1, =tim_int_flag
@@ -292,14 +288,13 @@ read_slider_switches_ASM:
     and A1, A1, A2
     BX LR
 
-// pre-- A1: LED bit mask
+// A1 -> LEDs
 write_LEDs_ASM:
     LDR A2, =LED_ADDR
     STR A1, [A2]
     BX LR
 
-// pre-- A1: load value (initial value)
-// pre-- A2: configuration bit 
+// A1 -> load, A2 -> config
 ARM_TIM_config_ASM:
     ldr A3, =TIMER_load
     str A1, [A3]
@@ -309,15 +304,14 @@ ARM_TIM_config_ASM:
     bx LR
 
 
-// read 'F' value
-// post-- A1: 0x00000000 or 0x00000001
+// A1 <- F bit
 ARM_TIM_read_INT_ASM:
     ldr A1, =TIMER_interr
     ldr A1, [A1]
     and A1, A1, #1
     bx LR
 
-// clear 'F' value
+// clear F
 ARM_TIM_clear_INT_ASM:
     ldr A1, =TIMER_interr
     mov A2, #1
@@ -341,20 +335,16 @@ ARM_TIM_clear_INT_ASM:
 
 
 
-// pre-- A1: address of a length-prefixed message (digits 0-15 or BLANK)
-// pre-- A2: signed number of right shifts (negative shifts rotate left)
-// Short messages are padded on the left to six positions.
-// Longer messages rotate across their full length; only six positions show.
-// Preserves V1-V5; clobbers A1-A3 and flags.
+// A1 -> msg, A2 -> right shifts (negative = left)
 write_msg:
     push {V1-V5, LR}
 
-    ldrb A3, [A1], #1       // Length; A1 now points to the first digit
-    mov V1, A1             // Message data pointer
+    ldrb A3, [A1], #1
+    mov V1, A1
     mov V2, A3
     cmp V2, #6
-    movlt V2, #6           // Circular width = max(length, 6)
-    sub V3, V2, A3         // Number of leading blank positions
+    movlt V2, #6           // width -> max(length, 6)
+    sub V3, V2, A3
 
 write_msg_shift_negative:
     cmp A2, #0
@@ -364,19 +354,19 @@ write_msg_shift_negative:
 write_msg_shift_reduce:
     cmp A2, V2
     subge A2, A2, V2
-    bge write_msg_shift_reduce // Normalize shift into 0 .. width-1
+    bge write_msg_shift_reduce // shift -> 0..width-1
 
-    rsb V4, A2, V2         // First source = (width - shift) % width
+    rsb V4, A2, V2
     cmp V4, V2
     moveq V4, #0
-    mov V5, #HEX5          // Write from leftmost HEX5 to rightmost HEX0
+    mov V5, #HEX5          // HEX5 -> HEX0
 
 write_msg_digit:
     mov A2, #BLANK
     cmp V4, V3
-    blt write_msg_display  // Source is within the leading padding
+    blt write_msg_display
     sub A3, V4, V3
-    ldrb A2, [V1, A3]      // Message digit (including explicit blanks)
+    ldrb A2, [V1, A3]
 
 write_msg_display:
     mov A1, V5
@@ -384,37 +374,37 @@ write_msg_display:
 
     add V4, V4, #1
     cmp V4, V2
-    moveq V4, #0           // Wrap source at the full circular width
+    moveq V4, #0
     lsrs V5, V5, #1
     bne write_msg_digit
 
     pop {V1-V5, LR}
     bx LR
 
-// pre-- A1: indices of HEX
+// A1 -> HEX mask
 HEX_clear_ASM:
     mov A2, #NONE
     b HEX_apply_pattern
 
-// pre-- A1: indices of HEX
+// A1 -> HEX mask
 HEX_flood_ASM:
     mov A2, #FULL
     b HEX_apply_pattern
 
-// pre-- A1: indices of HEX
-// pre-- A2: pattern to match (0-9 or a-f)
+// A1 -> HEX mask
+// A2 -> digit (0-F)
 HEX_write_ASM:
     ldr A3, =HEX_CODES
     ldrb A2, [A3, A2]
     b HEX_apply_pattern
 
 
-// pre-- A1: indices of HEX
-// pre-- A2: pattern to apply
+// A1 -> HEX mask
+// A2 -> segments
 HEX_apply_pattern:
     push {V1, V2, V3}
     ldr V1, =HEX_ADDR_0_3
-    mov V2, #0 // hex0
+    mov V2, #0
 loop:
     ands V3, A1, #1
     bne write
@@ -433,18 +423,15 @@ end_loop:
 write:
     mov V3, #0xFF
     lsl V3, V3, V2
-    // clear
     ldr A3, [V1]
     bic A3, A3, V3
-    // write
     lsl V3, A2, V2
     orr A3, A3, V3
-    // save
     str A3, [V1]
     b finish_write
 
 switch:
-    // switch from 0-3 to 4-5
+    // HEX0-3 -> HEX4-5
     mov V2, #0
     ldr V1, =HEX_ADDR_4_5
     b finish_switch
@@ -496,8 +483,7 @@ switch:
 
 
 // PB
-// reads the data register
-// post-- A1: indices of pressed buttons
+// A1 <- pressed PB mask
 read_PB_data_ASM:
     ldr A1, =DATA_REG
     ldr A1, [A1]
@@ -505,9 +491,8 @@ read_PB_data_ASM:
     bx LR 
 
 
-// tells us if a button is pressed or not
-// pre-- A1: index of button to look at
-// post-- A1: 0x00000001 if button is pressed else 0
+// A1 -> PB index
+// A1 <- 1 if pressed
 PB_data_is_pressed_ASM:
     push {V1, LR}
     mov V1, A1
@@ -521,7 +506,7 @@ PB_data_is_pressed_ASM:
     bx LR
 
 
-// post-- A1: indices of buttons pressed and released
+// A1 <- released PB mask
 read_PB_edgecp_ASM:
     ldr A1, =EDGECAPTURE_REG
     ldr A1, [A1]
@@ -529,8 +514,8 @@ read_PB_edgecp_ASM:
     bx LR 
 
 
-// pre-- A1: index of button
-// post-- A1: 0x00000001 if button is pressed and release else 0
+// A1 -> PB index
+// A1 <- 1 if released
 PB_edgecp_is_pressed_ASM:
     push {V1, LR}
     mov V1, A1
@@ -543,7 +528,7 @@ PB_edgecp_is_pressed_ASM:
     pop {V1, LR}
     bx LR
 
-// clears edgecapture register by writing what we read to it
+// read -> write back to clear
 PB_clear_edgecp_ASM:
     push {V1, V2}
     ldr V1, =EDGECAPTURE_REG
@@ -552,8 +537,7 @@ PB_clear_edgecp_ASM:
     pop {V1, V2}
     bx LR 
 
-// set interupt mask bit to indices of PB
-// pre-- A1: indices of PB
+// A1 -> PB mask
 enable_PB_INT_ASM:
     ldr A2, =INTERRUPT_REG
     ldr A3, [A2]
@@ -561,8 +545,7 @@ enable_PB_INT_ASM:
     str A3, [A2]
     bx LR
 
-// unset interupt mask bit to indices of PB
-// pre-- A1: indices of PB
+// A1 -> PB mask
 disable_PB_INT_ASM:
     ldr A2, =INTERRUPT_REG
     ldr A3, [A2]
@@ -604,7 +587,7 @@ CONFIG_GIC:
     MOV R1, #1              // this field is a bit-mask; bit 0 targets cpu0
     BL CONFIG_INTERRUPT
 
-    mov R0, #29             // ARM A9 private timer (banked for this CPU)
+    mov R0, #29             // timer -> ID 29
     mov R1, #1
     bl CONFIG_INTERRUPT
 
@@ -684,17 +667,17 @@ SERVICE_IRQ:
     /* Read the ICCIAR from the CPU Interface */
     LDR R4, =0xFFFEC100
     LDR R5, [R4, #0x0C]     // read from ICCIAR
-    ubfx R0, R5, #0, #10    // interrupt ID; retain full ICCIAR token in R5
+    ubfx R0, R5, #0, #10    // R0 -> ID, R5 -> full token
     cmp R0, #29
     beq Timer_check
 Pushbutton_check:
     cmp R0, #73
     beq Handle_pushbutton
-    ldr R1, =1023           // spurious IRQ: no interrupt to acknowledge
+    ldr R1, =1023           // spurious -> return
     cmp R0, R1
     beq RETURN_IRQ
 UNEXPECTED:
-    b UNEXPECTED           // unknown interrupt ID: stop here for debugging
+    b UNEXPECTED           // unknown ID -> stop
 Handle_pushbutton:
     BL KEY_ISR
     b EXIT_IRQ
@@ -702,7 +685,7 @@ Timer_check:
     bl ARM_TIM_ISR
 EXIT_IRQ:
     /* Write to the End of Interrupt Register (ICCEOIR) */
-    dsb SY                 // finish clearing the peripheral before EOI
+    dsb SY                 // clear peripheral -> EOI
     STR R5, [R4, #0x10]     // write to ICCEOIR
 RETURN_IRQ:
     POP {R0-R7, LR}
@@ -716,16 +699,16 @@ SERVICE_FIQ:
 /*--- KEY interrupt service routine -------------------------------*/
 KEY_ISR:
     ldr R0, =EDGECAPTURE_REG
-    ldr R1, [R0]           // one bit per pressed-and-released pushbutton
+    ldr R1, [R0]
     and R1, R1, #0xF
     ldr R2, =PB_int_flag
-    str R1, [R2]           // IDLE will interpret the captured button mask
-    str R1, [R0]           // write captured bits back to clear the interrupt
+    str R1, [R2]           // PB mask -> flag
+    str R1, [R0]
     bx LR
 
 /*--- ARM A9 private timer interrupt service routine ---------------*/
 ARM_TIM_ISR:
     ldr R0, =tim_int_flag
     mov R1, #1
-    str R1, [R0]           // IDLE will consume this pending timer event
-    b ARM_TIM_clear_INT_ASM // clear F and return using the caller's LR
+    str R1, [R0]           // timer -> flag
+    b ARM_TIM_clear_INT_ASM
