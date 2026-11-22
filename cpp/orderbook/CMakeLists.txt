@@ -39,3 +39,8 @@ target_include_directories(run_tests PRIVATE
 )
 
 target_compile_features(run_tests PRIVATE cxx_std_17)
+
+# Lets `ctest` (and VS Code's Testing panel via CMake Tools) find each TEST individually
+enable_testing()
+include(GoogleTest)
+gtest_discover_tests(run_tests)
