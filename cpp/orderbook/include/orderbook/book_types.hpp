@@ -38,4 +38,5 @@ struct PriceLevel {
 using BidBook = std::map<Price, PriceLevel, std::greater<int>>; //sorted keys descending
 using SellBook = std::map<Price, PriceLevel>; //sorted keys ascending
 
+using Depth = std::vector<std::pair<Price, Quantity>>;
 

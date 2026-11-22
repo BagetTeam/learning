@@ -4,9 +4,7 @@
 #include <gtest/gtest.h>
 #include <optional>
 #include <stdexcept>
-#include <vector>
 
-using Depth = std::vector<std::pair<Price, Quantity>>;
 
 // =============================================================================
 // 1. Plain tests: TEST(SuiteName, TestName)

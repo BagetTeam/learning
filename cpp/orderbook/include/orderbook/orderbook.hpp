@@ -90,7 +90,7 @@ public:
         else reduceInBook(sellBook_, locIt, id, remove);
     }
 
-    std::vector<std::pair<Price, Quantity>> getDepth(Side side, int depth) {
+    Depth getDepth(Side side, int depth) {
         if (side == Side::Buy) {
             return populateDepth(bidBook_, depth);
         }
@@ -109,8 +109,8 @@ private:
     std::unordered_map<OrderID, OrderLocation> orders_;
 
     template<typename BookTypes>
-    std::vector<std::pair<Price, Quantity>> populateDepth(BookTypes& book, int depth) {
-        std::vector<std::pair<Price, Quantity>> v;
+    Depth populateDepth(BookTypes& book, int depth) {
+        Depth v;
         v.reserve(depth); 
         
         int i = 0;
