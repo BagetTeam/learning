@@ -126,6 +126,29 @@ add_shift:
 
 // PB Logic
 
+// reads the data register
+// post-- A1: indices of pressed buttons
+read_PB_data_ASM:
+    ldr A1, =DATA_REG
+    ldr A1, [A1]
+    and A1, A1, #0xF
+    bx LR 
+
+// tells us if a button is pressed or not
+// pre-- A1: index of button to look at
+// post-- A1: 0x00000001 if button is pressed else 0
+PB_data_is_pressed_ASM:
+    push {V1, LR}
+    mov V1, A1
+    bl read_PB_data_ASM
+    tst V1, A1
+
+    moveq A1, #0x00000000
+    movne A1, #0x00000001
+    
+    pop {V1, LR}
+    bx LR
+
 // post-- A1: indices of buttons pressed and released
 read_PB_edgecp_ASM:
     ldr A1, =EDGECAPTURE_REG
@@ -157,7 +180,24 @@ PB_clear_edgecp_ASM:
     pop {V1, V2}
     bx LR 
 
+// set interupt mask bit to indices of PB
+// pre-- A1: indices of PB
+enable_PB_INT_ASM:
+    ldr A2, =INTERRUPT_REG
+    ldr A3, [A2]
+    orr A3, A3, A1
+    str A3, [A2]
+    bx LR
 
+// unset interupt mask bit to indices of PB
+// pre-- A1: indices of PB
+disable_PB_INT_ASM:
+    ldr A2, =INTERRUPT_REG
+    ldr A3, [A2]
+    bic A3, A3, A1
+    str A3, [A2]
+    bx LR
+    
 // LEDS logic
     
 // pre-- A1: data to write to LED state
@@ -345,6 +385,11 @@ shift_done:
 // pre-- A1: indices of HEX
 HEX_clear_ASM:
     mov A2, #NONE
+    b HEX_apply_pattern
+
+// pre-- A1: indices of HEX
+HEX_flood_ASM:
+    mov A2, #FULL
     b HEX_apply_pattern
 
 // pre-- A1: indices of HEX
