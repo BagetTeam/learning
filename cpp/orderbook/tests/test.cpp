@@ -1,9 +1,11 @@
 #include "engine.hpp"
 #include "order.hpp"
 #include "orderbook.hpp"
+#include "ordertype.hpp"
 #include <gtest/gtest.h>
 #include <optional>
 #include <stdexcept>
+#include <vector>
 
 
 // =============================================================================
@@ -113,4 +115,39 @@ TEST_F(OrderBookTest, CancelRemovesOrderAndEmptyLevel) {
 TEST_F(OrderBookTest, SubmittingDuplicateIdThrows) {
     EXPECT_THROW(engine.submit(Order(1, Side::Buy, OrderType::Limit, 98, 5)),
                  std::invalid_argument);
+}
+
+TEST_F(OrderBookTest, InitialTrades) {
+    std::vector<Trade> trades = engine.getTrades();
+    std::vector<Trade> expected = {};
+    EXPECT_EQ(trades,expected);
+}
+
+TEST_F(OrderBookTest, TradesWithMarket) {
+    std::vector<Trade> trades = engine.getTrades();
+
+    engine.submit(Order(9, Side::Sell, OrderType::Limit, 100, 30));
+    engine.submit(Order(10, Side::Sell, OrderType::Market, std::nullopt, 40));
+
+    std::vector<Trade> expectedTrades = {
+        {1, 9, 100, 10},
+        {2, 9, 100, 20},
+        {4, 10, 100, 10},
+        {3, 10, 99, 30}
+    };
+    EXPECT_EQ(trades,expectedTrades);
+}
+
+TEST_F(OrderBookTest, TradesWithPartialFill) {
+    std::vector<Trade> trades = engine.getTrades();
+
+    engine.submit(Order(9, Side::Sell, OrderType::Limit, 100, 10));
+    engine.submit(Order(10, Side::Sell, OrderType::Limit, 100, 40));
+
+    std::vector<Trade> expectedTrades = {
+        {1, 9, 100, 10},
+        {2, 10, 100, 20},
+        {4, 10, 100, 10}
+    };
+    EXPECT_EQ(trades,expectedTrades);
 }

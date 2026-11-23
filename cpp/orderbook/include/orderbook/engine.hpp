@@ -81,6 +81,8 @@ public:
         book_.addOrder(taker);
     }
 
+    const std::vector<Trade>& getTrades() const { return trades_; }
+
     
 private:
     OrderBook& book_;
