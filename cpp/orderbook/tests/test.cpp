@@ -1,3 +1,4 @@
+#include "book_types.hpp"
 #include "engine.hpp"
 #include "order.hpp"
 #include "orderbook.hpp"
@@ -76,6 +77,7 @@ TEST_F(OrderBookTest, InitialBookState) {
     // parentheses, or the commas inside them confuse the macro.
     EXPECT_EQ(book.getDepth(Side::Buy, 5), (Depth{{100, 40}, {99, 50}}));
     EXPECT_EQ(book.getDepth(Side::Sell, 2), (Depth{{101, 120}, {102, 50}}));
+    EXPECT_EQ(engine.getTrades(),std::vector<Trade>{});
 }
 
 TEST_F(OrderBookTest, AddingBidOrders) {
@@ -117,14 +119,15 @@ TEST_F(OrderBookTest, SubmittingDuplicateIdThrows) {
                  std::invalid_argument);
 }
 
-TEST_F(OrderBookTest, InitialTrades) {
-    std::vector<Trade> trades = engine.getTrades();
-    std::vector<Trade> expected = {};
-    EXPECT_EQ(trades,expected);
+TEST_F(OrderBookTest, FillingWithMarket) {
+    engine.submit(Order(200, Side::Sell, OrderType::Market, std::nullopt, 100));
+
+    EXPECT_FALSE(book.orderExists(200));
+    EXPECT_EQ(book.getDepth(Side::Buy, 5), Depth{});
 }
 
 TEST_F(OrderBookTest, TradesWithMarket) {
-    std::vector<Trade> trades = engine.getTrades();
+    const std::vector<Trade>& trades = engine.getTrades();
 
     engine.submit(Order(9, Side::Sell, OrderType::Limit, 100, 30));
     engine.submit(Order(10, Side::Sell, OrderType::Market, std::nullopt, 40));
@@ -139,7 +142,7 @@ TEST_F(OrderBookTest, TradesWithMarket) {
 }
 
 TEST_F(OrderBookTest, TradesWithPartialFill) {
-    std::vector<Trade> trades = engine.getTrades();
+    const std::vector<Trade>& trades = engine.getTrades();
 
     engine.submit(Order(9, Side::Sell, OrderType::Limit, 100, 10));
     engine.submit(Order(10, Side::Sell, OrderType::Limit, 100, 40));
