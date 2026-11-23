@@ -29,11 +29,11 @@ class Order {
             quantity_ -= remove;
         }
 
-        OrderID getOrderId() { return orderId_; }
-        Quantity getQuantity() { return quantity_; }
-        std::optional<Price> getPrice() { return price_; }
-        Side getSide() { return side_; }
-        OrderType getOrderType() { return orderType_; }
+        OrderID getOrderId() const { return orderId_; }
+        Quantity getQuantity() const { return quantity_; }
+        std::optional<Price> getPrice() const { return price_; }
+        Side getSide() const { return side_; }
+        OrderType getOrderType() const { return orderType_; }
 
     private:
         OrderID orderId_;
