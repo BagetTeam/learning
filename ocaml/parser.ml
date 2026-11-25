@@ -37,7 +37,7 @@ let string1 s =
 let test_string1 = string1 "i love cats" ['i';' ';'l'; 'o';'v';'e';' ';'c';'a';'t';'s';'t';'o';'o']
 
 
-let string2 s = 
+let string2 s : string parser = 
     let rec go l : unit parser =
         match l with
         | [] -> fun cs -> Some (cs, ())
@@ -51,3 +51,15 @@ let string2 s =
 let test_string2 = string2 "i love cats" ['i';' ';'l'; 'o';'v';'e';' ';'c';'a';'t';'s';'t';'o';'o']
 
 
+let of_value x = fun input -> Some (input, x)
+
+let string2 s : string parser = 
+    let rec go l : unit parser =
+        match l with
+        | [] -> fun cs -> Some (cs, ())
+        | x::xs -> 
+            satisfy (fun c -> c = x) |*> 
+            fun _ -> go xs |*> 
+            fun _ -> of_value ()
+        in
+    go (explode s) |*> fun _ -> of_value s
