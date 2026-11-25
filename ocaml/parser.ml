@@ -63,3 +63,32 @@ let string2 s : string parser =
             fun _ -> of_value ()
         in
     go (explode s) |*> fun _ -> of_value s
+
+
+type 'a stream = {head: 'a; tail: unit -> 'a stream}
+
+let rec unfold (f: 's -> 'a * 's) (state: 's) : 'a stream =
+  let (cur, next_state) = f state in
+  {
+    head=cur;
+    tail= fun () -> unfold f next_state
+  }
+
+
+let is_digit : char -> bool = fun x -> match x with '0' .. '9' -> true | _ -> false
+
+let digit : int parser = 
+    satisfy (fun d -> is_digit d) |*> 
+    fun d -> String.make 1 d |> int_of_string |> of_value
+
+let rec digit_sum = 
+    fun input -> (
+        match digit input with 
+        | None -> Some (input, 0)
+        | Some (rest, x) -> (
+            digit_sum |*>
+            fun sum -> of_value (x + sum)
+        ) rest
+    ) 
+    
+let test_digit_sum = digit_sum ['1';'5';'4']
