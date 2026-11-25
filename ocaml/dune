@@ -1,0 +1,5 @@
+(library
+ (name parser_lib)
+ (modules ass8_parser_lib ass8_parser)
+ ; keep warnings visible, but don't fail the build on them
+ (flags (:standard -warn-error -a)))
