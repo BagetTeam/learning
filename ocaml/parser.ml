@@ -12,9 +12,9 @@ let omap (f: 'a -> 'b) = fun input ->
     | None -> None
     | Some x -> Some (f x)
 
-let satisfy (f: char -> bool) : unit parser = fun cs ->
+let satisfy (f: char -> bool) : char parser = fun cs ->
     match cs with 
-    | c::cs when f c -> Some (cs, ())
+    | c::cs when f c -> Some (cs, c)
     | _ -> None
 
 let (|*>) (p: 'a parser) (k: 'a -> 'b parser) : 'b parser = fun input ->
@@ -34,4 +34,18 @@ let string1 s =
   in
   fun cs -> go (explode s) cs |> omap (fun (rest, _) -> (rest, s))
               
+let test_string1 = string1 "i love cats" ['i';' ';'l'; 'o';'v';'e';' ';'c';'a';'t';'s';'t';'o';'o']
+
+
+let string2 s = 
+    let rec go l : unit parser =
+        match l with
+        | [] -> fun cs -> Some (cs, ())
+        | x::xs -> 
+            satisfy (fun c -> c = x) |*> 
+            fun _ -> go xs |*> 
+            fun _ -> fun ys -> Some (ys, ())
+        in
+    fun cs -> (|*>) (go (explode s)) (fun _ -> fun ys -> Some (ys, s)) cs
+
 let test_string1 = string1 "i love cats" ['i';' ';'l'; 'o';'v';'e';' ';'c';'a';'t';'s';'t';'o';'o']
