@@ -2,10 +2,10 @@ type 'a parser = char list -> (char list * 'a) option
 
 let explode s =
     let rec go i acc =
-        if i <= 0 then acc
+        if i < 0 then acc
         else go (i-1) (s.[i] :: acc)
     in
-    go (String.length s) []
+    go (String.length s - 1) []
 
 let omap (f: 'a -> 'b) = fun input ->
     match input with
