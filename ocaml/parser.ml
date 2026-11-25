@@ -46,6 +46,8 @@ let string2 s =
             fun _ -> go xs |*> 
             fun _ -> fun ys -> Some (ys, ())
         in
-    fun cs -> (|*>) (go (explode s)) (fun _ -> fun ys -> Some (ys, s)) cs
+    go (explode s) |*> fun _ -> fun ys -> Some (ys, s)
 
-let test_string1 = string1 "i love cats" ['i';' ';'l'; 'o';'v';'e';' ';'c';'a';'t';'s';'t';'o';'o']
+let test_string2 = string2 "i love cats" ['i';' ';'l'; 'o';'v';'e';' ';'c';'a';'t';'s';'t';'o';'o']
+
+
