@@ -3,7 +3,7 @@
  (_
   (flags (:standard -warn-error -a))))
 
-; assignment 8: the provided lib + your solutions
+; assignment 8: provided lib + solutions
 (library
  (name parser_lib)
  (modules ass8_parser_lib ass8_parser))
@@ -19,7 +19,13 @@
  (name practice)
  (modules parser lazy_prog))
 
-; assignment 9: the provided lib + your solutions
+; assignment 9: provided lib + solutions
 (library
  (name eval_lib)
  (modules ass9_eval_substitution_lib ass9_eval_sub))
+
+
+; assignment 10: provided lib + solutions
+(library
+ (name infer_lib)
+ (modules ass10_inference_lib ass10_prelude ass10_inference))
