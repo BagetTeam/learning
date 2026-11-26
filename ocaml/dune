@@ -18,3 +18,8 @@
 (library
  (name practice)
  (modules parser lazy_prog))
+
+; assignment 9: the provided lib + your solutions
+(library
+ (name eval_lib)
+ (modules ass9_eval_substitution_lib ass9_eval_sub))
