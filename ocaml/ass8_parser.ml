@@ -11,8 +11,14 @@ let rec tree_parser i =
   let tree_parser_impl : tree Parser.t =
     first_of_2
       (const_map Leaf (symbol "."))
-      (symbol "(" |>>                     (* Remove `(` and call tree_parser *)
-        tree_parser |*>
+      (
+        symbol "(" |>>
+        tree_parser |*> fun l ->
+        symbol "<" |>> 
+        int_digits |*> fun v ->
+        symbol ">" |>>
+        tree_parser |*> fun r ->
+        symbol ")" |>> of_value (Node (l, v, r))
       )
   in
   tree_parser_impl i
