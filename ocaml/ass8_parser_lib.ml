@@ -311,3 +311,7 @@ end = struct
       operandp
       (optional (map2 (fun op b -> (op, b)) operatorp operandp))
 end
+
+type 'a parser = 'a Parser.t
+
+let newline = Parser.satisfy (( = ) '\n')
