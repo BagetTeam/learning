@@ -110,17 +110,35 @@ let rec eval (e : exp) : exp =
       end
 
   | ConstB _ -> e
-  | If (e', e1, e2) -> raise NotImplemented
+  | If (e', e1, e2) -> 
+      begin
+        match eval e' with
+        | ConstB b -> 
+          if b then
+            eval e1
+          else eval e2
+        | _ -> raise EvaluationStuck
+      end
 
   | Comma (e1, e2) -> Comma (eval e1, eval e2)
-  | LetComma (x, y, e1, e2) -> raise NotImplemented
+  | LetComma (x, y, e1, e2) -> 
+      begin
+        match eval e1 with 
+        | Comma (a, b) -> eval (subst (a, x) (subst (b, y) e2))
+        | _ -> raise EvaluationStuck
+      end
 
-  | Fn (x, tOpt, e') -> raise NotImplemented
-  | Apply (e1, e2) -> raise NotImplemented
+  | Fn (x, tOpt, e') -> e
+  | Apply (e1, e2) -> 
+      begin
+        match eval e1 with 
+        | Fn (x, tOpt, e1') -> eval (subst (eval e2, x) e1')   (* x = e2 *)
+        | _ -> raise EvaluationStuck
+      end 
 
-  | Rec (f, tOpt, e') -> raise NotImplemented
-
-  | Let (x, e1, e2) -> raise NotImplemented
+  | Rec (f, tOpt, e') -> 
+        eval (subst (Rec (f, tOpt, e'), f) e')     (*. f = (e' =  f ...) *)
+  | Let (x, e1, e2) -> eval (subst (eval e1, x) e2)
   | Var _ -> raise EvaluationStuck
 
 (** DO NOT Change This Definition *)
@@ -129,3 +147,26 @@ let eval_test_helper e =
     Some (eval e)
   with
   | EvaluationStuck -> None
+
+
+
+
+  (*
+  Rec (
+    "fact", None, Fn (
+      "n", None, Apply (Var "fact", n - 1)
+    )
+  )
+    
+  Rec (
+    "fact", None, Fn (
+      "n", None, Apply (
+        Rec (
+          "fact", None, Fn (
+            "n", None, Apply (Var "fact", n - 1)     and so on
+          )
+        ), n - 1)     we apply n-1 to subRec
+    )
+  )
+  
+  *)
