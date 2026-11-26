@@ -92,3 +92,26 @@ let rec digit_sum =
     ) 
     
 let test_digit_sum = digit_sum ['1';'5';'4']
+
+
+let alt (p1 : 'a parser) (p2 : 'a parser) : 'a parser = fun input ->
+  match p1 input with
+  | None -> p2 input
+  | Some x -> Some x
+  
+let rec many (p : 'a parser) : 'a list parser =
+  alt (* try to... *)
+    (some p) (* parser p one or more times *)
+    (of_value []) (* but if that fails, just return an empty list; we parsed p zero times. *)
+(* `some p` runs `p` **one** or more times, collecting results into a list. *)
+and some (p : 'a parser) : 'a list parser = fun input -> begin
+    p |*> fun x -> (* parse `p` once *)
+      many p |*> fun xs -> (* parse `p` zero or more times *)
+        of_value (x::xs) (* put the results together in a list *)
+  end input
+  
+  let digit_sum =
+    many digit_sum |*> fun res ->
+        of_value (
+            List.fold_left (fun acc x -> x + acc) 0 res
+        )
