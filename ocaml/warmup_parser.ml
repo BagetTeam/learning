@@ -124,14 +124,7 @@ let row header_names = field |*>
 let csv = 
   header |*> 
   fun header_result -> 
-  let rec go = 
-    fun input -> 
-    first_of_2 ( newline |>>
-      row header_result |*> fun row_result -> 
-      go |*> fun r -> of_value (row_result :: r)
-    ) (of_value []) input
-  in
-  go
+    many (newline |>> row header_result)
 
 (** DO NOT Change This Definition *)
 let parse_csv = run (between (of_value ()) eof csv)
