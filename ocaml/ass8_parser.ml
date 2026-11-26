@@ -38,16 +38,27 @@ let rec arith_parser i =
   let open Parser in
   let atomic_exp_parser =
     (** You may need to use [arith_parser] here *)
-    raise NotImplemented
+    first_of_2 (int_digits |*> fun result -> of_value (Const result)) (
+      symbol "(" |>> 
+      arith_parser |*> fun result ->
+      symbol ")" |>> of_value result
+    )
   in
   let power_exp_parser =
-    raise NotImplemented
+    first_of_2 (
+      right_assoc_op (symbol "^") (atomic_exp_parser) 
+      (fun res1 op res2 -> Bop (res1, Power, res2))
+    ) atomic_exp_parser
   in
   let multiplicative_exp_parser =
-    raise NotImplemented
+    first_of_2 (
+      left_assoc_op (symbol "*") (power_exp_parser) 
+      (fun res1 op res2 -> Bop (res1, Times, res2))
+    ) power_exp_parser
   in
   let arith_exp_parser_impl =
-    raise NotImplemented
+    left_assoc_op (first_of_2 (const_map Plus (symbol "+")) (const_map Minus (symbol "-"))) multiplicative_exp_parser
+    (fun res1 op res2 -> Bop (res1, op, res2))
   in
   arith_exp_parser_impl i
 
