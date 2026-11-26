@@ -48,7 +48,7 @@ let string2 s : string parser =
         in
     go (explode s) |*> fun _ -> fun ys -> Some (ys, s)
 
-let test_string2 = string2 "i love cats" ['i';' ';'l'; 'o';'v';'e';' ';'c';'a';'t';'s';'t';'o';'o']
+let test_string2 = string2 "i love cate" ['i';' ';'l'; 'o';'v';'e';' ';'c';'a';'t';'s';'t';'o';'o']
 
 
 let of_value x = fun input -> Some (input, x)
@@ -56,7 +56,7 @@ let of_value x = fun input -> Some (input, x)
 let string2 s : string parser = 
     let rec go l : unit parser =
         match l with
-        | [] -> fun cs -> Some (cs, ())
+        | [] -> of_value ()
         | x::xs -> 
             satisfy (fun c -> c = x) |*> 
             fun _ -> go xs |*> 

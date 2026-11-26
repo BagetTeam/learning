@@ -1,5 +1,20 @@
+; keep warnings visible, but don't fail the build on them
+(env
+ (_
+  (flags (:standard -warn-error -a))))
+
+; assignment 8: the provided lib + your solutions
 (library
  (name parser_lib)
- (modules ass8_parser_lib ass8_parser)
- ; keep warnings visible, but don't fail the build on them
- (flags (:standard -warn-error -a)))
+ (modules ass8_parser_lib ass8_parser))
+
+; warmup, which can use parser_lib
+(library
+ (name warmup)
+ (modules warmup_parser)
+ (libraries parser_lib))
+
+; older practice files
+(library
+ (name practice)
+ (modules parser lazy_prog))
