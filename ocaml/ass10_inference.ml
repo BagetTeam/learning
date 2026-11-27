@@ -21,17 +21,42 @@ let rec typ_infer (ctx : Context.t) (e : exp) : typ =
       else raise TypeInferenceError
 
   | ConstB _ -> Bool
-  | If (e', e1, e2) -> raise NotImplemented
+  | If (e', e1, e2) -> 
+    (
+      if typ_infer ctx e' = Bool then 
+        let t = typ_infer ctx e1 in
+        if t = typ_infer ctx e2 then t
+        else raise TypeInferenceError
+      else raise TypeInferenceError
+    )
 
   | Comma (e1, e2) -> Pair (typ_infer ctx e1, typ_infer ctx e2)
-  | LetComma (x, y, e1, e2) -> raise NotImplemented
+  | LetComma (x, y, e1, e2) -> (
+    match typ_infer ctx e1 with 
+    | Pair (a, b) -> 
+        typ_infer (Context.extend (Context.extend ctx (x, a)) (y, b)) e2
+    | _ -> raise TypeInferenceError
+  )
 
-  | Fn (x, Some t, e') -> raise NotImplemented
-  | Apply (e1, e2) -> raise NotImplemented
+  | Fn (x, Some t, e') -> Arrow (t, typ_infer (Context.extend ctx (x, t)) e')
+  | Apply (e1, e2) -> (
+    match typ_infer ctx e1 with 
+    | Arrow (t1, t2) -> 
+      if typ_infer ctx e2 = t1 then t2
+      else raise TypeInferenceError
+    | _ -> raise TypeInferenceError
+  )
 
-  | Rec (f, Some t, e') -> raise NotImplemented
+  | Rec (f, Some t, e') -> (
+    let t' = typ_infer (Context.extend ctx (f, t)) e' in
+      if t' = t then t
+      else raise TypeInferenceError
+    )
 
-  | Let (x, e1, e2) -> raise NotImplemented
+  | Let (x, e1, e2) -> 
+      let t = typ_infer ctx e1 in 
+      typ_infer (Context.extend ctx (x, t)) e2
+
   | Var x ->
       begin
         match Context.lookup ctx x with
