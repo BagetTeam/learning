@@ -21,6 +21,8 @@ HEX_CODES:
 .byte 0b00111001, 0b01011110, 0b01111001, 0b01110001 // C, d, E, F
 
 NONE = 0x00
+FULL = 0x7F
+
 
 // PB
 
